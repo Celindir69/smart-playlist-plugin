@@ -1,0 +1,130 @@
+{
+  "schedule_enabled": {
+    "type": "boolean",
+    "value": true
+  },
+  "schedule_time": {
+    "type": "string",
+    "value": "03:00"
+  },
+  "rule_1": {
+    "type": "string",
+    "value": "# One playlist rule per line. Examples:"
+  },
+  "rule_2": {
+    "type": "string",
+    "value": "# Genesis;Supertramp;Pink Floyd"
+  },
+  "rule_3": {
+    "type": "string",
+    "value": "# Classic Rock 70s::Genesis;Supertramp;Pink Floyd|album!~Live|year>=1973|year<=1979"
+  },
+  "rule_4": {
+    "type": "string",
+    "value": "# Recently Added::*|added<5|limit=20"
+  },
+  "rule_5": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_6": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_7": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_8": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_9": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_10": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_11": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_12": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_13": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_14": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_15": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_16": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_17": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_18": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_19": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_20": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_21": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_22": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_23": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_24": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_25": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_26": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_27": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_28": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_29": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_30": {
+    "type": "string",
+    "value": ""
+  }
+}
