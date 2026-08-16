@@ -1,0 +1,21 @@
+{
+  "SMART_PLAYLISTS": {
+    "PLUGIN_NAME": "Smart Playlists",
+    "SCHEDULE_SECTION": "Schedule",
+    "SCHEDULE_SECTION_DOC": "All of Volumio's standard music sources (Internal Storage, USB, NAS) are scanned automatically - no path configuration needed. Missing sources are skipped.",
+    "SCHEDULE_ENABLED": "Run automatically",
+    "SCHEDULE_ENABLED_DOC": "If enabled, playlists are regenerated automatically once a day at the time below.",
+    "SCHEDULE_TIME": "Daily run time",
+    "SCHEDULE_TIME_DOC": "24h format, e.g. 03:00",
+    "RULES_SECTION": "Playlist Rules",
+    "RULES_SECTION_DOC": "One playlist rule per line (up to 30 lines). Leave unused lines blank. Lines starting with # are comments. See the plugin's README for the full filter/sort syntax.",
+    "RUN_SECTION": "Run",
+    "RUN_NOW": "Run now",
+    "SAVE": "Save",
+    "TOAST_RUN_STARTED": "Building playlists - this can take a while on first run or after adding many files...",
+    "TOAST_RUN_SUCCESS": "Playlists updated successfully",
+    "TOAST_RUN_ERROR": "Playlist generation failed - check the log",
+    "TOAST_SETTINGS_SAVED": "Settings saved",
+    "TOAST_RULES_SAVED": "Rules saved"
+  }
+}
