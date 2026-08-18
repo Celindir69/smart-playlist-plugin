@@ -126,5 +126,253 @@
   "rule_30": {
     "type": "string",
     "value": ""
+  },
+  "rules_page2_enabled": {
+    "type": "boolean",
+    "value": false
+  },
+  "rule_31": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_32": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_33": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_34": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_35": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_36": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_37": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_38": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_39": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_40": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_41": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_42": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_43": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_44": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_45": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_46": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_47": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_48": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_49": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_50": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_51": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_52": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_53": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_54": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_55": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_56": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_57": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_58": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_59": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_60": {
+    "type": "string",
+    "value": ""
+  },
+  "rules_page3_enabled": {
+    "type": "boolean",
+    "value": false
+  },
+  "rule_61": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_62": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_63": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_64": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_65": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_66": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_67": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_68": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_69": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_70": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_71": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_72": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_73": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_74": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_75": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_76": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_77": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_78": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_79": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_80": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_81": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_82": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_83": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_84": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_85": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_86": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_87": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_88": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_89": {
+    "type": "string",
+    "value": ""
+  },
+  "rule_90": {
+    "type": "string",
+    "value": ""
   }
 }

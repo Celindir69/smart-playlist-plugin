@@ -91,7 +91,69 @@
           "rule_27",
           "rule_28",
           "rule_29",
-          "rule_30"
+          "rule_30",
+          "rules_page2_enabled",
+          "rule_31",
+          "rule_32",
+          "rule_33",
+          "rule_34",
+          "rule_35",
+          "rule_36",
+          "rule_37",
+          "rule_38",
+          "rule_39",
+          "rule_40",
+          "rule_41",
+          "rule_42",
+          "rule_43",
+          "rule_44",
+          "rule_45",
+          "rule_46",
+          "rule_47",
+          "rule_48",
+          "rule_49",
+          "rule_50",
+          "rule_51",
+          "rule_52",
+          "rule_53",
+          "rule_54",
+          "rule_55",
+          "rule_56",
+          "rule_57",
+          "rule_58",
+          "rule_59",
+          "rule_60",
+          "rules_page3_enabled",
+          "rule_61",
+          "rule_62",
+          "rule_63",
+          "rule_64",
+          "rule_65",
+          "rule_66",
+          "rule_67",
+          "rule_68",
+          "rule_69",
+          "rule_70",
+          "rule_71",
+          "rule_72",
+          "rule_73",
+          "rule_74",
+          "rule_75",
+          "rule_76",
+          "rule_77",
+          "rule_78",
+          "rule_79",
+          "rule_80",
+          "rule_81",
+          "rule_82",
+          "rule_83",
+          "rule_84",
+          "rule_85",
+          "rule_86",
+          "rule_87",
+          "rule_88",
+          "rule_89",
+          "rule_90"
         ]
       },
       "content": [
@@ -454,6 +516,978 @@
             }
           ],
           "value": ""
+        },
+        {
+          "id": "rules_page2_enabled",
+          "element": "switch",
+          "label": "Show rules 31-60",
+          "value": false
+        },
+        {
+          "id": "rule_31",
+          "element": "input",
+          "type": "text",
+          "label": "Line 31",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_32",
+          "element": "input",
+          "type": "text",
+          "label": "Line 32",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_33",
+          "element": "input",
+          "type": "text",
+          "label": "Line 33",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_34",
+          "element": "input",
+          "type": "text",
+          "label": "Line 34",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_35",
+          "element": "input",
+          "type": "text",
+          "label": "Line 35",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_36",
+          "element": "input",
+          "type": "text",
+          "label": "Line 36",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_37",
+          "element": "input",
+          "type": "text",
+          "label": "Line 37",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_38",
+          "element": "input",
+          "type": "text",
+          "label": "Line 38",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_39",
+          "element": "input",
+          "type": "text",
+          "label": "Line 39",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_40",
+          "element": "input",
+          "type": "text",
+          "label": "Line 40",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_41",
+          "element": "input",
+          "type": "text",
+          "label": "Line 41",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_42",
+          "element": "input",
+          "type": "text",
+          "label": "Line 42",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_43",
+          "element": "input",
+          "type": "text",
+          "label": "Line 43",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_44",
+          "element": "input",
+          "type": "text",
+          "label": "Line 44",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_45",
+          "element": "input",
+          "type": "text",
+          "label": "Line 45",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_46",
+          "element": "input",
+          "type": "text",
+          "label": "Line 46",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_47",
+          "element": "input",
+          "type": "text",
+          "label": "Line 47",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_48",
+          "element": "input",
+          "type": "text",
+          "label": "Line 48",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_49",
+          "element": "input",
+          "type": "text",
+          "label": "Line 49",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_50",
+          "element": "input",
+          "type": "text",
+          "label": "Line 50",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_51",
+          "element": "input",
+          "type": "text",
+          "label": "Line 51",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_52",
+          "element": "input",
+          "type": "text",
+          "label": "Line 52",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_53",
+          "element": "input",
+          "type": "text",
+          "label": "Line 53",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_54",
+          "element": "input",
+          "type": "text",
+          "label": "Line 54",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_55",
+          "element": "input",
+          "type": "text",
+          "label": "Line 55",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_56",
+          "element": "input",
+          "type": "text",
+          "label": "Line 56",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_57",
+          "element": "input",
+          "type": "text",
+          "label": "Line 57",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_58",
+          "element": "input",
+          "type": "text",
+          "label": "Line 58",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_59",
+          "element": "input",
+          "type": "text",
+          "label": "Line 59",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_60",
+          "element": "input",
+          "type": "text",
+          "label": "Line 60",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page2_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rules_page3_enabled",
+          "element": "switch",
+          "label": "Show rules 61-90",
+          "value": false
+        },
+        {
+          "id": "rule_61",
+          "element": "input",
+          "type": "text",
+          "label": "Line 61",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_62",
+          "element": "input",
+          "type": "text",
+          "label": "Line 62",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_63",
+          "element": "input",
+          "type": "text",
+          "label": "Line 63",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_64",
+          "element": "input",
+          "type": "text",
+          "label": "Line 64",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_65",
+          "element": "input",
+          "type": "text",
+          "label": "Line 65",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_66",
+          "element": "input",
+          "type": "text",
+          "label": "Line 66",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_67",
+          "element": "input",
+          "type": "text",
+          "label": "Line 67",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_68",
+          "element": "input",
+          "type": "text",
+          "label": "Line 68",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_69",
+          "element": "input",
+          "type": "text",
+          "label": "Line 69",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_70",
+          "element": "input",
+          "type": "text",
+          "label": "Line 70",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_71",
+          "element": "input",
+          "type": "text",
+          "label": "Line 71",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_72",
+          "element": "input",
+          "type": "text",
+          "label": "Line 72",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_73",
+          "element": "input",
+          "type": "text",
+          "label": "Line 73",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_74",
+          "element": "input",
+          "type": "text",
+          "label": "Line 74",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_75",
+          "element": "input",
+          "type": "text",
+          "label": "Line 75",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_76",
+          "element": "input",
+          "type": "text",
+          "label": "Line 76",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_77",
+          "element": "input",
+          "type": "text",
+          "label": "Line 77",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_78",
+          "element": "input",
+          "type": "text",
+          "label": "Line 78",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_79",
+          "element": "input",
+          "type": "text",
+          "label": "Line 79",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_80",
+          "element": "input",
+          "type": "text",
+          "label": "Line 80",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_81",
+          "element": "input",
+          "type": "text",
+          "label": "Line 81",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_82",
+          "element": "input",
+          "type": "text",
+          "label": "Line 82",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_83",
+          "element": "input",
+          "type": "text",
+          "label": "Line 83",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_84",
+          "element": "input",
+          "type": "text",
+          "label": "Line 84",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_85",
+          "element": "input",
+          "type": "text",
+          "label": "Line 85",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_86",
+          "element": "input",
+          "type": "text",
+          "label": "Line 86",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_87",
+          "element": "input",
+          "type": "text",
+          "label": "Line 87",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_88",
+          "element": "input",
+          "type": "text",
+          "label": "Line 88",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_89",
+          "element": "input",
+          "type": "text",
+          "label": "Line 89",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
+        },
+        {
+          "id": "rule_90",
+          "element": "input",
+          "type": "text",
+          "label": "Line 90",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page3_enabled",
+            "value": true
+          }
         }
       ]
     },

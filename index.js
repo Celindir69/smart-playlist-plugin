@@ -7,8 +7,13 @@ var exec = require('child_process').exec;
 
 // Must match the number of "rule_N" fields generated in config.json and
 // UIConfig.json (single-line inputs, since Volumio's UI schema has no
-// confirmed multi-line "textarea" element).
-var NUM_RULE_LINES = 30;
+// confirmed multi-line "textarea" element). Rules beyond the first 30 are
+// grouped into two more pages (31-60, 61-90), each hidden behind a
+// "rules_page2_enabled"/"rules_page3_enabled" toggle switch (via
+// UIConfig.json's "visibleIf", the same mechanism already used for
+// schedule_time/schedule_enabled) so the settings page doesn't show 90
+// input fields at once by default.
+var NUM_RULE_LINES = 90;
 
 // Where the rules file, cache, manifest, and debug log live. Deliberately
 // NOT inside the music folder (avoids accidental edits/deletion via
@@ -178,9 +183,19 @@ ControllerSmartPlaylists.prototype.getUIConfig = function () {
       scheduleSection.content[0].value = self.config.get('schedule_enabled');
       scheduleSection.content[1].value = self.config.get('schedule_time');
 
+      // Looked up by "id" rather than assumed array position: the rules
+      // section's content array now also holds the two page-toggle
+      // switches interspersed between rule blocks (see NUM_RULE_LINES
+      // comment above), so "content[i - 1] === rule_i" no longer holds.
       var rulesSection = uiconf.sections[1];
+      var rulesContentById = {};
+      rulesSection.content.forEach(function (item) {
+        rulesContentById[item.id] = item;
+      });
+      rulesContentById['rules_page2_enabled'].value = !!self.config.get('rules_page2_enabled');
+      rulesContentById['rules_page3_enabled'].value = !!self.config.get('rules_page3_enabled');
       for (var i = 1; i <= NUM_RULE_LINES; i++) {
-        rulesSection.content[i - 1].value = self.config.get('rule_' + i) || '';
+        rulesContentById['rule_' + i].value = self.config.get('rule_' + i) || '';
       }
 
       defer.resolve(uiconf);
@@ -251,6 +266,8 @@ ControllerSmartPlaylists.prototype.saveRules = function (data) {
   var defer = libQ.defer();
 
   try {
+    self.config.set('rules_page2_enabled', !!data['rules_page2_enabled']);
+    self.config.set('rules_page3_enabled', !!data['rules_page3_enabled']);
     for (var i = 1; i <= NUM_RULE_LINES; i++) {
       var key = 'rule_' + i;
       self.config.set(key, safeString(data[key]));
