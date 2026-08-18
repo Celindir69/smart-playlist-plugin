@@ -161,7 +161,7 @@
         {
           "id": "rules_page1_enabled",
           "element": "switch",
-          "label": "Show rules 1-30",
+          "label": "TRANSLATE.SMART_PLAYLISTS.RULES_SHOW_PAGE1",
           "value": true
         },
         {
@@ -647,7 +647,7 @@
         {
           "id": "rules_page2_enabled",
           "element": "switch",
-          "label": "Show rules 31-60",
+          "label": "TRANSLATE.SMART_PLAYLISTS.RULES_SHOW_PAGE2",
           "value": false
         },
         {
@@ -1133,7 +1133,7 @@
         {
           "id": "rules_page3_enabled",
           "element": "switch",
-          "label": "Show rules 61-90",
+          "label": "TRANSLATE.SMART_PLAYLISTS.RULES_SHOW_PAGE3",
           "value": false
         },
         {
