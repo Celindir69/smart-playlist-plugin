@@ -7,12 +7,13 @@ var exec = require('child_process').exec;
 
 // Must match the number of "rule_N" fields generated in config.json and
 // UIConfig.json (single-line inputs, since Volumio's UI schema has no
-// confirmed multi-line "textarea" element). Rules beyond the first 30 are
-// grouped into two more pages (31-60, 61-90), each hidden behind a
-// "rules_page2_enabled"/"rules_page3_enabled" toggle switch (via
-// UIConfig.json's "visibleIf", the same mechanism already used for
-// schedule_time/schedule_enabled) so the settings page doesn't show 90
-// input fields at once by default.
+// confirmed multi-line "textarea" element). Rules are grouped into three
+// pages (1-30, 31-60, 61-90), each hidden behind its own
+// "rules_page1_enabled"/"rules_page2_enabled"/"rules_page3_enabled"
+// toggle switch (via UIConfig.json's "visibleIf", the same mechanism
+// already used for schedule_time/schedule_enabled) so all three can be
+// shown/hidden independently. Page 1 defaults to visible (existing users
+// with <=30 rules see no change); pages 2/3 default to hidden.
 var NUM_RULE_LINES = 90;
 
 // Where the rules file, cache, manifest, and debug log live. Deliberately
@@ -184,7 +185,7 @@ ControllerSmartPlaylists.prototype.getUIConfig = function () {
       scheduleSection.content[1].value = self.config.get('schedule_time');
 
       // Looked up by "id" rather than assumed array position: the rules
-      // section's content array now also holds the two page-toggle
+      // section's content array now also holds the three page-toggle
       // switches interspersed between rule blocks (see NUM_RULE_LINES
       // comment above), so "content[i - 1] === rule_i" no longer holds.
       var rulesSection = uiconf.sections[1];
@@ -192,6 +193,7 @@ ControllerSmartPlaylists.prototype.getUIConfig = function () {
       rulesSection.content.forEach(function (item) {
         rulesContentById[item.id] = item;
       });
+      rulesContentById['rules_page1_enabled'].value = self.config.get('rules_page1_enabled') !== false;
       rulesContentById['rules_page2_enabled'].value = !!self.config.get('rules_page2_enabled');
       rulesContentById['rules_page3_enabled'].value = !!self.config.get('rules_page3_enabled');
       for (var i = 1; i <= NUM_RULE_LINES; i++) {
@@ -266,6 +268,7 @@ ControllerSmartPlaylists.prototype.saveRules = function (data) {
   var defer = libQ.defer();
 
   try {
+    self.config.set('rules_page1_enabled', !!data['rules_page1_enabled']);
     self.config.set('rules_page2_enabled', !!data['rules_page2_enabled']);
     self.config.set('rules_page3_enabled', !!data['rules_page3_enabled']);
     for (var i = 1; i <= NUM_RULE_LINES; i++) {

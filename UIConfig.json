@@ -62,6 +62,7 @@
       "saveButton": {
         "label": "TRANSLATE.SMART_PLAYLISTS.SAVE",
         "data": [
+          "rules_page1_enabled",
           "rule_1",
           "rule_2",
           "rule_3",
@@ -158,6 +159,12 @@
       },
       "content": [
         {
+          "id": "rules_page1_enabled",
+          "element": "switch",
+          "label": "Show rules 1-30",
+          "value": true
+        },
+        {
           "id": "rule_1",
           "element": "input",
           "type": "text",
@@ -167,7 +174,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_2",
@@ -179,7 +190,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_3",
@@ -191,7 +206,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_4",
@@ -203,7 +222,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_5",
@@ -215,7 +238,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_6",
@@ -227,7 +254,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_7",
@@ -239,7 +270,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_8",
@@ -251,7 +286,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_9",
@@ -263,7 +302,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_10",
@@ -275,7 +318,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_11",
@@ -287,7 +334,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_12",
@@ -299,7 +350,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_13",
@@ -311,7 +366,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_14",
@@ -323,7 +382,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_15",
@@ -335,7 +398,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_16",
@@ -347,7 +414,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_17",
@@ -359,7 +430,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_18",
@@ -371,7 +446,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_19",
@@ -383,7 +462,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_20",
@@ -395,7 +478,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_21",
@@ -407,7 +494,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_22",
@@ -419,7 +510,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_23",
@@ -431,7 +526,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_24",
@@ -443,7 +542,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_25",
@@ -455,7 +558,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_26",
@@ -467,7 +574,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_27",
@@ -479,7 +590,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_28",
@@ -491,7 +606,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_29",
@@ -503,7 +622,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rule_30",
@@ -515,7 +638,11 @@
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
             }
           ],
-          "value": ""
+          "value": "",
+          "visibleIf": {
+            "field": "rules_page1_enabled",
+            "value": true
+          }
         },
         {
           "id": "rules_page2_enabled",

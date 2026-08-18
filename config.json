@@ -7,6 +7,10 @@
     "type": "string",
     "value": "03:00"
   },
+  "rules_page1_enabled": {
+    "type": "boolean",
+    "value": true
+  },
   "rule_1": {
     "type": "string",
     "value": "# One playlist rule per line. Examples:"
