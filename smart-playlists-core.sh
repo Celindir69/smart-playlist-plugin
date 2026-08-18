@@ -75,6 +75,14 @@ DEBUG_LOG="$WORK_DIR/smart_playlists.debug.log"
 mkdir -p "$WORK_DIR"
 mkdir -p "$PLAYLIST_OUT_DIR"
 
+# Rudimentary log rotation: keep the debug log from growing unbounded
+# under a long-lived daily cron/systemd-timer schedule - relevant on
+# space-constrained SD-card Volumio installs. Rotate once it exceeds
+# ~5 MB, keeping one previous copy.
+if [[ -f "$DEBUG_LOG" ]] && (( $(stat -c%s "$DEBUG_LOG" 2>/dev/null || echo 0) > 5242880 )); then
+  mv -f "$DEBUG_LOG" "${DEBUG_LOG}.1"
+fi
+
 exec 3>>"$DEBUG_LOG"
 PS4='+ ${BASH_SOURCE}:${LINENO}:${FUNCNAME[0]:-main}: '
 if [[ "${DEBUG:-0}" == "1" ]]; then
@@ -805,25 +813,79 @@ while IFS= read -r line || [[ -n "$line" ]]; do
       ordered_tracks="$limited_tracks"
     fi
 
-    cat "$ordered_tracks" \
-      | while IFS=$'\t' read -r fp ti al aa trk yr added; do
-          uri="$(uri_for_path "$fp")"
-          # "-" is our internal placeholder for "no value" (see the note
-          # in update_cache on why real empty fields are avoided) - map
-          # it back to something sensible for display instead of showing
-          # a literal dash in the Volumio UI.
-          title="$ti"
-          [[ -z "$title" || "$title" == "-" ]] && title="$(basename "$fp")"
-          [[ "$aa" == "-" ]] && aa=""
-          [[ "$al" == "-" ]] && al=""
-          jq -n --arg service "mpd" \
-                --arg uri "$uri" \
-                --arg title "$title" \
-                --arg artist "$aa" \
-                --arg album "$al" \
-                '{service:$service, uri:$uri, title:$title, artist:$artist, album:$album}'
-        done \
-      | jq -s '.' > "$outfile"
+    # Build the JSON array in one awk pass + one jq invocation instead of
+    # spawning a separate jq (and uri_for_path subshell) per track. On
+    # large, lightly-filtered playlists (thousands of matches out of a
+    # multi-source library) the old per-track subprocess loop was by far
+    # the slowest part of the script - same reasoning as the single-awk-
+    # pass artist matching above. uri_for_path()'s source-matching logic
+    # is re-implemented here in awk (fed the same SOURCES_RAW) so the
+    # result is identical to calling the bash function per track.
+    playlist_tsv="$TMP_ROOT/playlist_$$_${RANDOM}.tsv"
+    uri_warn_log="$TMP_ROOT/uri_warn_$$_${RANDOM}.log"
+    awk -F'\t' -v sources="$SOURCES_RAW" '
+      BEGIN {
+        OFS = "\t"
+        nLines = split(sources, srcLines, "\n")
+        nSrc = 0
+        for (i = 1; i <= nLines; i++) {
+          if (srcLines[i] == "") continue
+          split(srcLines[i], parts, "|")
+          nSrc++
+          sDir[nSrc] = parts[1]
+          sRoot[nSrc] = parts[2]
+          sPrefix[nSrc] = parts[3]
+        }
+      }
+      # Mirrors uri_for_path(): find the configured source whose scan_dir
+      # is a prefix of fp, strip its uri_root prefix from fp, and prepend
+      # its uri_prefix. Falls back to fp with only the leading "/"
+      # stripped (and a warning, like the bash version) if - in theory -
+      # no configured source matches.
+      function uriFor(fp,   i, dirprefix, rootprefix, rel) {
+        for (i = 1; i <= nSrc; i++) {
+          dirprefix = sDir[i] "/"
+          if (substr(fp, 1, length(dirprefix)) == dirprefix) {
+            rootprefix = sRoot[i] "/"
+            rel = fp
+            if (substr(fp, 1, length(rootprefix)) == rootprefix) {
+              rel = substr(fp, length(rootprefix) + 1)
+            }
+            return sPrefix[i] rel
+          }
+        }
+        print "Warning: could not determine source for '\''" fp "'\'' - uri may be wrong" > "/dev/stderr"
+        rel = fp
+        sub(/^\//, "", rel)
+        return rel
+      }
+      {
+        fp = $1; ti = $2; al = $3; aa = $4
+        uri = uriFor(fp)
+        # "-" is our internal placeholder for "no value" (see the note in
+        # update_cache on why real empty fields are avoided) - map it
+        # back to something sensible instead of a literal dash.
+        title = ti
+        if (title == "" || title == "-") {
+          n = split(fp, p, "/")
+          title = p[n]
+        }
+        if (aa == "-") aa = ""
+        if (al == "-") al = ""
+        print uri, title, aa, al
+      }
+    ' "$ordered_tracks" > "$playlist_tsv" 2>"$uri_warn_log"
+
+    if [[ -s "$uri_warn_log" ]]; then
+      while IFS= read -r warn_line; do
+        log "$warn_line"
+      done < "$uri_warn_log"
+    fi
+
+    jq -R -s '
+      split("\n") | map(select(length > 0) | split("\t")) |
+      map({service: "mpd", uri: .[0], title: .[1], artist: .[2], album: .[3]})
+    ' "$playlist_tsv" > "$outfile"
 
     chown volumio:volumio "$outfile" 2>/dev/null || true
 
