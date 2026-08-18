@@ -25,11 +25,15 @@ across Internal Storage, a USB drive, and a NAS share on Volumio 3.
   Storage, USB, and NAS - no path configuration needed. A source that isn't
   present on your system (e.g. no NAS connected) is silently skipped.
 - Reads metadata (AlbumArtist, Artist, Title, Album, Genre, Year, Track,
-  Duration, BPM) from your music files via `exiftool`, with an **incremental
-  cache**: only new or changed files are re-scanned on subsequent runs, so a
-  library of tens of thousands of tracks that would take ~20 minutes to scan
-  the first time only takes seconds on later runs if just a handful of files
-  changed.
+  Duration) directly from **Volumio's own MPD database** via `mpc` - the
+  same index that powers Browse/Search, so there's no separate per-file
+  scan to wait for at all (a ~24k track library that used to take ~20
+  minutes on first run now takes a couple of seconds, every run). Falls
+  back automatically to the original `exiftool`-based full scan (with its
+  incremental cache) if `mpc`/MPD isn't reachable for any reason. BPM -
+  the one thing MPD doesn't track - still comes from `exiftool`, but only
+  runs when a rule actually uses a `bpm` filter, and only for new/changed
+  files. See "MPD integration" below.
 - Supports `.flac`, `.mp3`, `.m4a`, `.dsf`, `.ogg`, `.opus`, `.aiff`/`.aif`,
   and `.ape` out of the box - configurable via the `AUDIO_EXTENSIONS` array
   in the script (see "Notes / limitations" below for why `.wav`/`.wma`
@@ -43,11 +47,17 @@ across Internal Storage, a USB drive, and a NAS share on Volumio 3.
 ## Requirements
 
 - Volumio 3
-- `exiftool` and `jq`. The plugin installs these automatically; for the
-  standalone script:
+- `jq` (always required) and `mpc` (used to talk to Volumio's own MPD - it's
+  part of Volumio's base image, nothing to install). The plugin installs
+  `jq` automatically; for the standalone script:
   ```bash
   sudo apt-get update
-  sudo apt-get install -y libimage-exiftool-perl jq
+  sudo apt-get install -y jq
+  ```
+- `exiftool` is only needed as a fallback (MPD unreachable) or for BPM
+  filters - install it too if you're not sure you'll need it:
+  ```bash
+  sudo apt-get install -y libimage-exiftool-perl
   ```
 
 ## Installation - Plugin (recommended)
@@ -141,6 +151,62 @@ If tracks from a source don't play, create a playlist for that source
 manually in the Volumio UI and inspect its `uri` field under
 `/data/playlist/` to see the actual format your system uses, then adjust
 `SMART_PLAYLISTS_SOURCES` accordingly.
+
+**Note:** the table above describes the **legacy** (`exiftool`/filesystem)
+scan path. The default MPD path (see below) determines a track's source
+differently - via the path MPD itself reports - and only falls back to
+scanning `SMART_PLAYLISTS_SOURCES` directly if MPD is unavailable.
+
+## MPD integration
+
+By default, metadata comes from Volumio's own MPD instance (`mpc search any
+""`) rather than from scanning files with `exiftool` one by one - MPD
+already has the whole library indexed for Browse/Search, so this is both
+far faster and one less thing to keep in sync. This is tried first on every
+run and needs no configuration; if `mpc` is missing or MPD doesn't respond,
+the script logs a warning and transparently falls back to the exiftool-based
+scan described above, so a broken/unusual MPD setup won't stop playlists
+from being generated.
+
+What this means in practice:
+- **Artist, Album, Title, Genre, Year, Track, Duration**: come from MPD.
+  No incremental cache is needed for these - a single MPD query is fast
+  enough to just re-run in full on every invocation.
+- **BPM**: MPD has no BPM tag at all (verified against a real MPD 0.24
+  instance - it's not in MPD's own list of valid tag/search types). If a
+  rule uses a `bpm` filter, `exiftool` runs a lightweight, BPM-only,
+  incrementally-cached pass (`.smart_playlists_bpm_cache.tsv` in the work
+  directory) - only for new/changed files, and only if `bpm` is actually
+  used somewhere in your rules.
+- **`added`** (days since added): MPD doesn't track this either, so it
+  still comes from the file's filesystem mtime via a plain `find` pass (no
+  `exiftool` involved - just listing files and their timestamps, which is
+  fast regardless of library size).
+- **uri source mapping**: MPD reports each file's path relative to its own
+  `music_directory` (default `/var/lib/mpd/music`), prefixed with the same
+  source label Volumio itself uses (e.g. `INTERNAL/Artist/Album/Track.mp3`).
+  That label is mapped to a playlist `uri` prefix via
+  `SMART_PLAYLISTS_URI_PREFIXES` (newline-separated `label|uri_prefix`
+  entries, default:
+  ```
+  INTERNAL|music-library/
+  USB|music-library/
+  NAS|mnt/
+  ```
+  ). **INTERNAL and USB are verified against a real device; NAS is
+  carried over from the legacy path's (independently verified) uri scheme
+  but was NOT tested against MPD's own NAS path format** - if you use a
+  NAS source, check the debug log for a "no configured uri prefix"
+  warning and adjust `SMART_PLAYLISTS_URI_PREFIXES` if needed.
+
+Relevant environment variables (standalone script) / equivalent behavior
+(plugin, same defaults):
+- `SMART_PLAYLISTS_MPD_MUSIC_DIR` - MPD's `music_directory` (default
+  `/var/lib/mpd/music`; check `grep music_directory /etc/mpd.conf` if
+  unsure).
+- `SMART_PLAYLISTS_MPD_TIMEOUT` - seconds to wait for MPD before giving up
+  and falling back to the legacy scan (default `120`).
+- `SMART_PLAYLISTS_URI_PREFIXES` - see above.
 
 ## Input file format
 
