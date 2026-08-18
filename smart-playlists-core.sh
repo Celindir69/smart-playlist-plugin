@@ -200,11 +200,20 @@ update_cache() {
   local _src_dir
   for _src_dir in "${SRC_DIR[@]}"; do
     [[ -d "$_src_dir" ]] || continue
+    # NOTE: mtime is truncated to whole seconds (dropping the fractional
+    # part %T@ normally reports) before comparison. Some mount types
+    # (CIFS/NAS shares, exFAT via FUSE in particular) have been observed
+    # to report a slightly different fractional mtime on every single
+    # stat() call for the same, genuinely-unchanged file - sub-second
+    # jitter that has nothing to do with an actual file change. Since our
+    # change-detection only needs "did this file actually change" at
+    # whole-second granularity, truncating eliminates that false-positive
+    # source without losing any meaningful precision.
     while IFS=$'\t' read -r mt fp; do
       [[ -z "$fp" ]] && continue
-      cur_mtime["$fp"]="$mt"
+      cur_mtime["$fp"]="${mt%%.*}"
       total=$((total + 1))
-    done < <(find "$_src_dir" -type f \( "${find_name_args[@]}" \) -printf '%T@\t%p\n')
+    done < <(find "$_src_dir" -type f \( "${find_name_args[@]}" \) ! -name '._*' -printf '%T@\t%p\n')
   done
 
   log "Audio files found: $total"
@@ -230,6 +239,20 @@ update_cache() {
   local new_count=${#to_scan[@]}
   log "New/changed files: $new_count"
 
+  # Diagnostic: log a sample of what actually changed (path, old mtime,
+  # new mtime) so a mismatch that keeps recurring on every run - which
+  # should NOT normally happen - can be investigated instead of only
+  # seeing the bare count. Capped at 20 lines to avoid flooding the log
+  # on a legitimate mass-change (e.g. after adding a lot of new music).
+  if (( new_count > 0 )); then
+    local _diag_i=0
+    for fp in "${to_scan[@]}"; do
+      _diag_i=$((_diag_i + 1))
+      (( _diag_i > 20 )) && { log "  ... and $((new_count - 20)) more (truncated)"; break; }
+      log "  changed: '$fp' old_mtime='${cache_mtime[$fp]:-<not in cache>}' new_mtime='${cur_mtime[$fp]}'"
+    done
+  fi
+
   if (( new_count > 0 )); then
     local exif_out="$TMP_ROOT/exif_out.tsv"
     local exif_rc=0
@@ -241,16 +264,43 @@ update_cache() {
     # and silently. That's why the exit code is deliberately caught
     # here and only logged.
     { printf '%s\0' "${to_scan[@]}" \
-        | xargs -0 -r exiftool -T -s3 -f -AlbumArtist -Artist -Title -Album -Genre -Year -Date -ContentCreateDate -Track -TrackNumber '-Duration#' -BeatsPerMinute -BPM -FilePath \
+        | xargs -0 -r exiftool -T -s3 -f -FilePath -AlbumArtist -Artist -Title -Album -Genre -Year -Date -ContentCreateDate -Track -TrackNumber '-Duration#' -BeatsPerMinute -BPM \
         | awk -F '\t' 'BEGIN{OFS="\t"}
             {
-              aa=$1; ar=$2; ti=$3; al=$4; ge=$5; yr=$6; da=$7; cc=$8;
-              tr1=$9; tr2=$10; dur=$11; bp1=$12; bp2=$13; fp=$14;
+              # FilePath is queried FIRST (field 1) on purpose: a metadata
+              # value that itself contains a TAB shifts every field after
+              # it, and losing track of WHICH FILE a row belongs to breaks
+              # the whole cache merge (the row silently disappears). With
+              # the path pinned to $1 it can never be displaced, and any
+              # extra fields caused by an embedded tab only affect the
+              # metadata columns, which we clean up below.
+              fp=$1; aa=$2; ar=$3; ti=$4; al=$5; ge=$6; yr=$7; da=$8; cc=$9;
+              tr1=$10; tr2=$11; dur=$12; bp1=$13; bp2=$14;
               if (aa=="-" || aa=="") aa=ar;
-              if (aa=="-" || aa=="") next;
-              if (ti=="-") ti="";
-              if (al=="-") al="";
-              if (ge=="-") ge="";
+              if (aa=="") aa="-";
+              # NOTE: files with no usable AlbumArtist/Artist tag (e.g. a
+              # corrupt/unsupported file, or one exiftool genuinely found
+              # nothing in) are NOT skipped here anymore - they still get
+              # a cache line (with artist "-", so they will simply never
+              # match any playlist rule). Skipping them via "next" used to
+              # mean they were NEVER written to the cache, which made the
+              # incremental update treat them as "new" on every single run
+              # forever, re-invoking exiftool on the exact same untaggable
+              # files over and over.
+              #
+              # IMPORTANT: missing values are represented as "-" (matching
+              # the convention exiftool itself uses for a missing tag),
+              # NEVER as a true empty string, in every field written to this file
+              # (and later to the cache and to tmp_tracks/ordered_tracks).
+              # bash "read" (with a tab IFS) silently collapses runs of
+              # consecutive tabs (i.e. adjacent empty fields) into a
+              # single delimiter, which misaligns every field after the
+              # first empty one - "-" as a non-empty placeholder sidesteps
+              # that bug entirely without needing to change how those
+              # files get parsed.
+              if (ti=="-" || ti=="") ti="-";
+              if (al=="-" || al=="") al="-";
+              if (ge=="-" || ge=="") ge="-";
               if (yr=="-" || yr=="") {
                 if (match(da, /[0-9][0-9][0-9][0-9]/)) {
                   yr = substr(da, RSTART, 4)
@@ -260,29 +310,29 @@ update_cache() {
                   # -Year/-Date often return nothing for these files.
                   yr = substr(cc, RSTART, 4)
                 } else {
-                  yr = ""
+                  yr = "-"
                 }
               } else if (match(yr, /[0-9][0-9][0-9][0-9]/)) {
                 yr = substr(yr, RSTART, 4)
               } else {
-                yr = ""
+                yr = "-"
               }
 
               # Track: "Track" (ID3) or "TrackNumber" (Vorbis/FLAC),
               # sometimes formatted "3/12" - keep only the leading digits.
               trkraw = (tr1 != "-" && tr1 != "") ? tr1 : tr2
               if (trkraw == "-" || trkraw == "") {
-                trk = ""
+                trk = "-"
               } else if (match(trkraw, /^[0-9]+/)) {
                 trk = substr(trkraw, RSTART, RLENGTH)
               } else {
-                trk = ""
+                trk = "-"
               }
 
               # Duration: the "#" Composite tag gives raw seconds - round
               # to whole seconds.
               if (dur == "-" || dur == "") {
-                dur = ""
+                dur = "-"
               } else {
                 dur = sprintf("%d", dur + 0)
               }
@@ -291,12 +341,24 @@ update_cache() {
               # (common on FLAC/Vorbis) - keep numeric values only.
               bpraw = (bp1 != "-" && bp1 != "") ? bp1 : bp2
               if (bpraw == "-" || bpraw == "") {
-                bpm = ""
+                bpm = "-"
               } else if (match(bpraw, /^[0-9]+(\.[0-9]+)?/)) {
                 bpm = substr(bpraw, RSTART, RLENGTH)
               } else {
-                bpm = ""
+                bpm = "-"
               }
+
+              # Defensive: a metadata value that itself contains a TAB (or
+              # a newline) would shift every subsequent column in this
+              # tab-separated file, corrupting the cache from that row on.
+              # Rare, but real - some badly-tagged files do carry stray
+              # control characters. Replace them with a space here rather
+              # than trusting the input.
+              gsub(/[\t\n\r]/, " ", aa)
+              gsub(/[\t\n\r]/, " ", ti)
+              gsub(/[\t\n\r]/, " ", al)
+              gsub(/[\t\n\r]/, " ", ge)
+              gsub(/[\t\n\r]/, " ", fp)
 
               print fp, aa, ti, al, ge, yr, trk, dur, bpm
             }' > "$exif_out"
@@ -333,9 +395,26 @@ sanitize_name() {
   # are deliberately kept so filtered playlist names stay readable
   # (e.g. "Genesis, Supertramp, Pink Floyd|album!~Live|year>=1973").
   # Only genuinely problematic characters (/ : " \ ? *) are replaced.
-  printf '%s' "$1" \
+  local out
+  out="$(printf '%s' "$1" \
     | tr '/:"\\?*' '_' \
-    | sed 's/^ *//; s/ *$//; s/  */ /g'
+    | tr -d '\000-\037' \
+    | sed 's/^ *//; s/ *$//; s/  */ /g')"
+
+  # Guard against names that would be dangerous or invisible as files:
+  #   "." / ".."   - not creatable as regular files at all; writing to
+  #                  them would fail (or worse, be misinterpreted)
+  #   ".foo"       - a leading dot makes it a hidden file, so the playlist
+  #                  would silently not show up where expected
+  # Also guard against an empty result (e.g. a name consisting only of
+  # characters that all got stripped).
+  case "$out" in
+    "" ) out="unnamed" ;;
+    "." | ".." ) out="unnamed" ;;
+    .* ) out="_${out}" ;;
+  esac
+
+  printf '%s' "$out"
 }
 
 update_cache
@@ -349,6 +428,7 @@ cache_lines=$(wc -l < "$CACHE_FILE" | tr -d ' ')
 log "Cache lines available: $cache_lines"
 
 current_names=()
+declare -A seen_names=()
 
 while IFS= read -r line || [[ -n "$line" ]]; do
   line="${line%$'\r'}"
@@ -383,6 +463,17 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   else
     base="$(sanitize_name "${rest//;/, }")"
   fi
+
+  # Two rule lines resolving to the same playlist name would silently
+  # overwrite each other (last one wins), which is almost never intended
+  # and very confusing to debug. Note this can also happen with visibly
+  # DIFFERENT names, because sanitize_name maps several characters to
+  # "_" (e.g. "A/B" and "A:B" both become "A_B").
+  if [[ -n "$base" && -n "${seen_names[$base]:-}" ]]; then
+    log "Warning: playlist name '$base' is used by more than one rule line - the later line overwrites the earlier one (line: $line)"
+  fi
+  [[ -n "$base" ]] && seen_names["$base"]=1
+
   [[ -n "$base" ]] && current_names+=("$base")
 
   # Line format (after the optional name prefix): "Artist1;Artist2;...|field<op>value|field<op>value|..."
@@ -486,6 +577,8 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
     IFS=',' read -r -a subconds <<< "$filt"
     group_joined=""
+    group_total=0
+    group_negative=0
     for sub in "${subconds[@]}"; do
       sub="$(printf '%s' "$sub" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
       [[ -z "$sub" ]] && continue
@@ -497,6 +590,10 @@ while IFS= read -r line || [[ -n "$line" ]]; do
           album|genre|year|title|artist|track|duration|bpm|added) ;;
           *) log "Unknown filter field ignored: $ffield (line: $line)"; continue ;;
         esac
+        group_total=$((group_total + 1))
+        if [[ "$fop" == "!=" || "$fop" == "!~" ]]; then
+          group_negative=$((group_negative + 1))
+        fi
         entry="${ffield}"$'\x1d'"${fop}"$'\x1d'"${fval}"
         if [[ -n "$group_joined" ]]; then
           group_joined+=$'\x1c'"$entry"
@@ -507,6 +604,17 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         log "Invalid filter ignored: '$sub' (line: $line)"
       fi
     done
+
+    # Likely-mistake check: a comma-group ("OR") made up ENTIRELY of
+    # negative conditions (!=, !~) is almost never what was intended.
+    # E.g. "album!~Live,title!~Live" means "album isn't Live OR title
+    # isn't Live", which is true for nearly every track (De Morgan's
+    # law: to exclude tracks where EITHER field says "Live", you need
+    # AND, i.e. separate "|" segments: "|album!~Live|title!~Live").
+    # This only warns, it does not change behavior or block the line.
+    if (( group_total >= 2 && group_negative == group_total )); then
+      log "Warning: line '$line' - filter group '$filt' combines $group_total exclusions (!=/!~) with comma (OR/likely a mistake - excludes almost nothing). To exclude tracks matching ANY of these, use separate | segments (AND) instead, e.g. |field1!~val1|field2!~val2"
+    fi
 
     [[ -z "$group_joined" ]] && continue
     if [[ -n "$filters_joined" ]]; then
@@ -588,7 +696,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
       }
       # Numeric comparison (year)
       function numMatch(val, op, want,   nvv, nwv) {
-        if (val == "") return 0
+        if (val == "" || val == "-") return 0
         nvv = val + 0; nwv = want + 0
         if (op == "=")  return (nvv == nwv)
         if (op == "!=") return (nvv != nwv)
@@ -700,8 +808,14 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     cat "$ordered_tracks" \
       | while IFS=$'\t' read -r fp ti al aa trk yr added; do
           uri="$(uri_for_path "$fp")"
+          # "-" is our internal placeholder for "no value" (see the note
+          # in update_cache on why real empty fields are avoided) - map
+          # it back to something sensible for display instead of showing
+          # a literal dash in the Volumio UI.
           title="$ti"
-          [[ -z "$title" ]] && title="$(basename "$fp")"
+          [[ -z "$title" || "$title" == "-" ]] && title="$(basename "$fp")"
+          [[ "$aa" == "-" ]] && aa=""
+          [[ "$al" == "-" ]] && al=""
           jq -n --arg service "mpd" \
                 --arg uri "$uri" \
                 --arg title "$title" \
@@ -735,13 +849,33 @@ for n in "${current_names[@]}"; do
   new_manifest_set["$n"]=1
 done
 
+# Names we failed to delete stay tracked so cleanup is retried on the
+# next run (e.g. once a permission/ownership issue is fixed) instead of
+# being silently forgotten forever just because this run's manifest
+# rewrite happens unconditionally below.
+failed_removals=()
+
 if [[ -f "$MANIFEST_FILE" ]]; then
   while IFS= read -r old_name; do
     [[ -z "$old_name" ]] && continue
     if [[ -z "${new_manifest_set[$old_name]:-}" ]]; then
       if [[ -f "$PLAYLIST_OUT_DIR/$old_name" ]]; then
-        rm -f "$PLAYLIST_OUT_DIR/$old_name"
-        log "Removed orphaned playlist: $old_name"
+        # NOTE: "rm -f" only suppresses "file does not exist" errors -
+        # a genuine permission/ownership failure (e.g. after a plugin
+        # reinstall changes file ownership) still makes it exit non-zero
+        # and print an error. Under "set -e" that would silently kill
+        # the WHOLE script mid-cleanup (before the manifest gets
+        # rewritten and before any later lines get processed), which is
+        # far worse than a failed deletion on its own. The "|| true"
+        # guards against that; we then verify success ourselves below
+        # instead of trusting rm's exit status either way.
+        rm -f "$PLAYLIST_OUT_DIR/$old_name" 2>/dev/null || true
+        if [[ -f "$PLAYLIST_OUT_DIR/$old_name" ]]; then
+          log "Warning: failed to remove orphaned playlist '$old_name' (still present after rm -f - check file ownership/permissions on $PLAYLIST_OUT_DIR) - will retry next run"
+          failed_removals+=("$old_name")
+        else
+          log "Removed orphaned playlist: $old_name"
+        fi
       fi
     fi
   done < "$MANIFEST_FILE"
@@ -749,6 +883,9 @@ fi
 
 : > "$MANIFEST_FILE"
 for n in "${current_names[@]}"; do
+  printf '%s\n' "$n" >> "$MANIFEST_FILE"
+done
+for n in "${failed_removals[@]}"; do
   printf '%s\n' "$n" >> "$MANIFEST_FILE"
 done
 
