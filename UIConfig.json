@@ -91,7 +91,37 @@
           "rule_27",
           "rule_28",
           "rule_29",
-          "rule_30"
+          "rule_30",
+          "rule_31",
+          "rule_32",
+          "rule_33",
+          "rule_34",
+          "rule_35",
+          "rule_36",
+          "rule_37",
+          "rule_38",
+          "rule_39",
+          "rule_40",
+          "rule_41",
+          "rule_42",
+          "rule_43",
+          "rule_44",
+          "rule_45",
+          "rule_46",
+          "rule_47",
+          "rule_48",
+          "rule_49",
+          "rule_50",
+          "rule_51",
+          "rule_52",
+          "rule_53",
+          "rule_54",
+          "rule_55",
+          "rule_56",
+          "rule_57",
+          "rule_58",
+          "rule_59",
+          "rule_60"
         ]
       },
       "content": [
@@ -448,6 +478,366 @@
           "element": "input",
           "type": "text",
           "label": "Line 30",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_31",
+          "element": "input",
+          "type": "text",
+          "label": "Line 31",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_32",
+          "element": "input",
+          "type": "text",
+          "label": "Line 32",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_33",
+          "element": "input",
+          "type": "text",
+          "label": "Line 33",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_34",
+          "element": "input",
+          "type": "text",
+          "label": "Line 34",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_35",
+          "element": "input",
+          "type": "text",
+          "label": "Line 35",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_36",
+          "element": "input",
+          "type": "text",
+          "label": "Line 36",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_37",
+          "element": "input",
+          "type": "text",
+          "label": "Line 37",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_38",
+          "element": "input",
+          "type": "text",
+          "label": "Line 38",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_39",
+          "element": "input",
+          "type": "text",
+          "label": "Line 39",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_40",
+          "element": "input",
+          "type": "text",
+          "label": "Line 40",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_41",
+          "element": "input",
+          "type": "text",
+          "label": "Line 41",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_42",
+          "element": "input",
+          "type": "text",
+          "label": "Line 42",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_43",
+          "element": "input",
+          "type": "text",
+          "label": "Line 43",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_44",
+          "element": "input",
+          "type": "text",
+          "label": "Line 44",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_45",
+          "element": "input",
+          "type": "text",
+          "label": "Line 45",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_46",
+          "element": "input",
+          "type": "text",
+          "label": "Line 46",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_47",
+          "element": "input",
+          "type": "text",
+          "label": "Line 47",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_48",
+          "element": "input",
+          "type": "text",
+          "label": "Line 48",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_49",
+          "element": "input",
+          "type": "text",
+          "label": "Line 49",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_50",
+          "element": "input",
+          "type": "text",
+          "label": "Line 50",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_51",
+          "element": "input",
+          "type": "text",
+          "label": "Line 51",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_52",
+          "element": "input",
+          "type": "text",
+          "label": "Line 52",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_53",
+          "element": "input",
+          "type": "text",
+          "label": "Line 53",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_54",
+          "element": "input",
+          "type": "text",
+          "label": "Line 54",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_55",
+          "element": "input",
+          "type": "text",
+          "label": "Line 55",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_56",
+          "element": "input",
+          "type": "text",
+          "label": "Line 56",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_57",
+          "element": "input",
+          "type": "text",
+          "label": "Line 57",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_58",
+          "element": "input",
+          "type": "text",
+          "label": "Line 58",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_59",
+          "element": "input",
+          "type": "text",
+          "label": "Line 59",
+          "attributes": [
+            {
+              "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"
+            }
+          ],
+          "value": ""
+        },
+        {
+          "id": "rule_60",
+          "element": "input",
+          "type": "text",
+          "label": "Line 60",
           "attributes": [
             {
               "placeholder": "Artist1;Artist2|filter...  or  # comment  or leave blank"

@@ -8,7 +8,7 @@ var exec = require('child_process').exec;
 // Must match the number of "rule_N" fields generated in config.json and
 // UIConfig.json (single-line inputs, since Volumio's UI schema has no
 // confirmed multi-line "textarea" element).
-var NUM_RULE_LINES = 30;
+var NUM_RULE_LINES = 60;
 
 // Where the rules file, cache, manifest, and debug log live. Deliberately
 // NOT inside the music folder (avoids accidental edits/deletion via
