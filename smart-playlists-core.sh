@@ -579,7 +579,26 @@ update_cache_mpd() {
   # from scratch every run above and has no persistent state to merge
   # BPM values into.
   declare -A bpm_by_path=()
-  if [[ -f "$INPUT_FILE" ]] && grep -qiE '(^|\|)[[:space:]]*bpm[[:space:]]*(>=|<=|!=|>|<|=|~)' "$INPUT_FILE"; then
+  local need_bpm=0
+  if [[ -f "$INPUT_FILE" ]]; then
+    local rline rtrimmed
+    while IFS= read -r rline || [[ -n "$rline" ]]; do
+      rline="${rline%$'\r'}"
+      [[ -z "${rline// }" ]] && continue
+      # Same comment-detection as the main rules parser below ("#" as the
+      # first non-whitespace char) - a plain substring/regex grep over
+      # the whole file would also match a commented-out README-style
+      # example line like "# ...|bpm>=120", wrongly triggering a full
+      # library BPM scan on every run where the cache is otherwise empty.
+      rtrimmed="${rline#"${rline%%[![:space:]]*}"}"
+      [[ "$rtrimmed" == \#* ]] && continue
+      if [[ "$rline" =~ (^|\|)[[:space:]]*[Bb][Pp][Mm][[:space:]]*(\>=|\<=|!=|\>|\<|=|~) ]]; then
+        need_bpm=1
+        break
+      fi
+    done < "$INPUT_FILE"
+  fi
+  if (( need_bpm == 1 )); then
     if ! command -v exiftool >/dev/null 2>&1; then
       log "Warning: rules file uses a bpm filter but exiftool is not installed - bpm values will stay empty until it is"
     else
