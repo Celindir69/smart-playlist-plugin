@@ -4,18 +4,17 @@ echo "Installing Smart Playlists dependencies"
 
 install_deps() {
   sudo apt-get update
-  sudo apt-get -y install --no-install-recommends libimage-exiftool-perl jq
+  sudo apt-get -y install --no-install-recommends jq
 }
 
 install_deps
 
-# Verify both tools actually made it onto the system. apt-get can fail
+# Verify jq actually made it onto the system. apt-get can fail
 # silently/partially (e.g. a transient network hiccup right after boot,
 # before networking is fully up) without the failure being obvious in the
 # install log - this happened in practice. Retry once before giving up.
 check_missing() {
   MISSING=""
-  command -v exiftool >/dev/null 2>&1 || MISSING="$MISSING exiftool"
   command -v jq >/dev/null 2>&1 || MISSING="$MISSING jq"
 }
 
@@ -30,16 +29,28 @@ if [ -n "$MISSING" ]; then
   if [ -n "$MISSING" ]; then
     echo "==================================================================="
     echo "ERROR: still missing after retry:$MISSING"
-    echo "Smart Playlists will NOT work until these are installed. Try"
+    echo "Smart Playlists will NOT work until this is installed. Try"
     echo "manually once your network connection is confirmed working:"
     echo "  sudo apt-get update"
-    echo "  sudo apt-get install -y libimage-exiftool-perl jq"
+    echo "  sudo apt-get install -y jq"
     echo "==================================================================="
   else
     echo "OK: all dependencies present after retry"
   fi
 else
   echo "OK: all dependencies present"
+fi
+
+# "mpc" (talks to Volumio's own MPD instance, where all metadata comes
+# from) is part of Volumio's base image on a correctly installed system -
+# nothing to install here, just verify it's actually there and warn
+# loudly if it somehow isn't, rather than failing silently at runtime.
+if ! command -v mpc >/dev/null 2>&1; then
+  echo "==================================================================="
+  echo "WARNING: 'mpc' was not found. This should be part of a standard"
+  echo "Volumio installation - Smart Playlists needs it to read metadata"
+  echo "from Volumio's own MPD instance and will NOT work without it."
+  echo "==================================================================="
 fi
 
 # Make sure the bundled core script is executable (should already be from

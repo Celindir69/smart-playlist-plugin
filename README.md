@@ -2,7 +2,7 @@
 
 Automatically builds native Volumio playlists from a plain text file of
 rules - artist lists with optional AND/OR filters on album, genre, year,
-title, track number, duration, BPM, and days-since-added, plus custom sort
+title, track number, duration, and days-since-added, plus custom sort
 order, track limits, and deduplication (e.g. when a best-of/live compilation
 and the original studio album are both in your library).
 
@@ -28,12 +28,9 @@ across Internal Storage, a USB drive, and a NAS share on Volumio 3.
   Duration) directly from **Volumio's own MPD database** via `mpc` - the
   same index that powers Browse/Search, so there's no separate per-file
   scan to wait for at all (a ~24k track library that used to take ~20
-  minutes on first run now takes a couple of seconds, every run). Falls
-  back automatically to the original `exiftool`-based full scan (with its
-  incremental cache) if `mpc`/MPD isn't reachable for any reason. BPM -
-  the one thing MPD doesn't track - still comes from `exiftool`, but only
-  runs when a rule actually uses a `bpm` filter, and only for new/changed
-  files. See "MPD integration" below.
+  minutes on first run with a per-file tag scanner now takes a couple of
+  seconds, every run). Requires a correctly installed Volumio with a
+  reachable local MPD - see "How metadata is read" below.
 - Supports `.flac`, `.mp3`, `.m4a`, `.dsf`, `.ogg`, `.opus`, `.aiff`/`.aif`,
   and `.ape` out of the box - configurable via the `AUDIO_EXTENSIONS` array
   in the script (see "Notes / limitations" below for why `.wav`/`.wma`
@@ -46,18 +43,14 @@ across Internal Storage, a USB drive, and a NAS share on Volumio 3.
 
 ## Requirements
 
-- Volumio 3
-- `jq` (always required) and `mpc` (used to talk to Volumio's own MPD - it's
-  part of Volumio's base image, nothing to install). The plugin installs
-  `jq` automatically; for the standalone script:
+- Volumio 3, with a reachable local MPD (standard on any correctly
+  installed Volumio)
+- `jq` and `mpc`. `mpc` is part of Volumio's base image - nothing to
+  install. The plugin installs `jq` automatically; for the standalone
+  script:
   ```bash
   sudo apt-get update
   sudo apt-get install -y jq
-  ```
-- `exiftool` is only needed as a fallback (MPD unreachable) or for BPM
-  filters - install it too if you're not sure you'll need it:
-  ```bash
-  sudo apt-get install -y libimage-exiftool-perl
   ```
 
 ## Installation - Plugin (recommended)
@@ -105,9 +98,9 @@ without it.
    ```bash
    sudo chmod +x /usr/local/bin/volumio-smart-playlists.sh
    ```
-3. That's it - no path configuration needed, it scans Internal Storage,
-   USB, and NAS automatically (see "Multi-source scanning" below if your
-   setup is non-standard).
+3. That's it - no path configuration needed, it reads Internal Storage,
+   USB, and NAS metadata straight from Volumio's own MPD (see "How
+   metadata is read" below if your setup is non-standard).
 
 ## Where the plugin stores its data
 
@@ -122,69 +115,28 @@ The standalone script defaults to the same location. Override it via the
 `SMART_PLAYLISTS_WORK_DIR` environment variable if you'd rather keep it
 elsewhere.
 
-## Multi-source scanning
+## How metadata is read
 
-Volumio 3's three standard music sources are scanned by default:
-
-| Source | Scanned directory | Playlist `uri` format |
-|---|---|---|
-| Internal Storage | `/data/INTERNAL` | `music-library/INTERNAL/<relative path>` |
-| USB | `/media/<drive-label>` | `music-library/USB/<relative path>` |
-| NAS | `/mnt/NAS/<share-name>` | `<relative path>` (no prefix at all) |
-
-USB and NAS were verified against playlists Volumio itself created for
-tracks from each source - note NAS genuinely uses a **different** uri
-scheme (the raw filesystem path, no `music-library/` prefix, no label) than
-USB/Internal Storage. Internal Storage follows the same structural pattern
-as USB but wasn't independently confirmed against every possible setup.
-
-Override the whole list via the `SMART_PLAYLISTS_SOURCES` environment
-variable if your setup differs - newline-separated entries of the form
-`scan_dir|uri_root|uri_prefix`:
-- `scan_dir`: directory to search for audio files in
-- `uri_root`: prefix stripped from a file's absolute path to build the
-  relative part of the `uri`
-- `uri_prefix`: prepended to that relative path to form the final `uri`
-  (empty for NAS-style raw paths)
-
-If tracks from a source don't play, create a playlist for that source
-manually in the Volumio UI and inspect its `uri` field under
-`/data/playlist/` to see the actual format your system uses, then adjust
-`SMART_PLAYLISTS_SOURCES` accordingly.
-
-**Note:** the table above describes the **legacy** (`exiftool`/filesystem)
-scan path. The default MPD path (see below) determines a track's source
-differently - via the path MPD itself reports - and only falls back to
-scanning `SMART_PLAYLISTS_SOURCES` directly if MPD is unavailable.
-
-## MPD integration
-
-By default, metadata comes from Volumio's own MPD instance (`mpc search any
-""`) rather than from scanning files with `exiftool` one by one - MPD
-already has the whole library indexed for Browse/Search, so this is both
-far faster and one less thing to keep in sync. This is tried first on every
-run and needs no configuration; if `mpc` is missing or MPD doesn't respond,
-the script logs a warning and transparently falls back to the exiftool-based
-scan described above, so a broken/unusual MPD setup won't stop playlists
-from being generated.
+All metadata comes from Volumio's own MPD instance (`mpc search any ""`)
+rather than from scanning files one by one - MPD already has the whole
+library indexed for Browse/Search, so this is both far faster and one less
+thing to keep in sync. This needs no configuration, and requires a
+reachable local MPD; if `mpc` is missing or MPD doesn't respond, the script
+exits with a clear error rather than guessing at an alternative (on a
+correctly installed Volumio, MPD is always there).
 
 What this means in practice:
 - **Artist, Album, Title, Genre, Year, Track, Duration**: come from MPD.
   No incremental cache is needed for these - a single MPD query is fast
   enough to just re-run in full on every invocation.
-- **BPM**: MPD has no BPM tag at all (verified against a real MPD 0.24
-  instance - it's not in MPD's own list of valid tag/search types). If a
-  rule uses a `bpm` filter, `exiftool` runs a lightweight, BPM-only,
-  incrementally-cached pass (`.smart_playlists_bpm_cache.tsv` in the work
-  directory) - only for new/changed files, and only if `bpm` is actually
-  used somewhere in your rules.
-- **`added`** (days since added): MPD doesn't track this either, so it
-  still comes from the file's filesystem mtime via a plain `find` pass (no
-  `exiftool` involved - just listing files and their timestamps, which is
-  fast regardless of library size).
+- **`added`** (days since added): MPD doesn't track "date added", so it
+  still comes from the file's filesystem mtime via a plain `find` pass -
+  just listing files and their timestamps, fast regardless of library
+  size.
 - **uri source mapping**: MPD reports each file's path relative to its own
   `music_directory` (default `/var/lib/mpd/music`), prefixed with the same
-  source label Volumio itself uses (e.g. `INTERNAL/Artist/Album/Track.mp3`).
+  source label Volumio itself uses for each of its standard music sources
+  (Internal Storage, USB, NAS) - e.g. `INTERNAL/Artist/Album/Track.mp3`.
   That label is mapped to a playlist `uri` prefix via
   `SMART_PLAYLISTS_URI_PREFIXES` (newline-separated `label|uri_prefix`
   entries, default:
@@ -194,9 +146,8 @@ What this means in practice:
   NAS|mnt/
   ```
   ). **INTERNAL and USB are verified against a real device; NAS is
-  carried over from the legacy path's (independently verified) uri scheme
-  but was NOT tested against MPD's own NAS path format** - if you use a
-  NAS source, check the debug log for a "no configured uri prefix"
+  UNVERIFIED** (no NAS source was available to test against) - if you use
+  a NAS source, check the debug log for a "no configured uri prefix"
   warning and adjust `SMART_PLAYLISTS_URI_PREFIXES` if needed.
 
 Relevant environment variables (standalone script) / equivalent behavior
@@ -204,8 +155,8 @@ Relevant environment variables (standalone script) / equivalent behavior
 - `SMART_PLAYLISTS_MPD_MUSIC_DIR` - MPD's `music_directory` (default
   `/var/lib/mpd/music`; check `grep music_directory /etc/mpd.conf` if
   unsure).
-- `SMART_PLAYLISTS_MPD_TIMEOUT` - seconds to wait for MPD before giving up
-  and falling back to the legacy scan (default `120`).
+- `SMART_PLAYLISTS_MPD_TIMEOUT` - seconds to wait for an MPD query before
+  giving up (default `120`).
 - `SMART_PLAYLISTS_URI_PREFIXES` - see above.
 
 ## Input file format
@@ -258,12 +209,12 @@ is exactly equivalent to the more compact
   (AND of ORs), which covers the vast majority of real-world queries
   without needing full parenthesized boolean expressions.
   - Fields: `album`, `genre`, `year`, `title`, `artist`, `track`,
-    `duration` (seconds), `bpm`, `added` (days since the file's mtime -
-    see caveat below)
+    `duration` (seconds), `added` (days since the file's mtime - see
+    caveat below)
   - Operators: `=`, `!=`, `~` (contains), `!~` (does not contain), `>`,
     `>=`, `<`, `<=`
   - Numeric comparisons (`>`, `>=`, `<`, `<=`) apply to `year`, `track`,
-    `duration`, `bpm`, and `added`.
+    `duration`, and `added`.
   - Note: if a value legitimately contains a comma, it will be
     mis-parsed as an OR split - this is a known limitation.
 - **`duplicate=false`** (optional, special field, must be its own `|`
@@ -312,8 +263,8 @@ Simply Red Mixes::Simply Red|title~Mix,album=12'' Ers
 # but each song should only appear once
 Queen Best-Of::Queen|duplicate=false
 
-# Fast, long tracks
-Long Uptempo::Genesis|duration>300|bpm>=120
+# Long tracks only
+Long Tracks::Genesis|duration>300
 
 # Sorted instead of shuffled: group by album (Z-A), tracks in order (1-N)
 Genesis Albums In Order::Genesis|sort=album-track+
@@ -384,7 +335,7 @@ Add (daily at 3 AM):
 0 3 * * * volumio /usr/local/bin/volumio-smart-playlists.sh >> /home/volumio/cron_playlists.log 2>&1
 ```
 
-If `exiftool` or `jq` live outside the default cron `PATH`, add a `PATH=`
+If `mpc` or `jq` live outside the default cron `PATH`, add a `PATH=`
 line above your entry in `/etc/crontab`:
 ```
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -446,28 +397,27 @@ objects like:
 {"service":"mpd","uri":"music-library/USB/Artist/Album/Track.flac","title":"...","artist":"...","album":"..."}
 ```
 This script writes exactly that format directly, so playlists appear in
-Volumio immediately, no import step required. See "Multi-source scanning"
+Volumio immediately, no import step required. See "How metadata is read"
 above for how the `uri` differs between Internal Storage/USB and NAS.
 
 ## Notes / limitations
 
 - Scanned extensions are configurable via the `AUDIO_EXTENSIONS` array
   near the top of the script. Default: `flac mp3 m4a dsf ogg opus aiff
-  aif ape` - formats with well-established, reliably read metadata via
-  exiftool (ID3 for mp3/dsf/aiff, Vorbis comments for flac/ogg/opus,
-  APEv2 for ape, MP4 atoms for m4a). `.wav` and `.wma` are deliberately
-  excluded by default - tagging conventions for those vary too much
-  (RIFF INFO vs. ID3 chunks for WAV, inconsistent ASF tag usage for WMA)
-  to trust blindly. If you want to add them (or anything else), test
-  first with `exiftool -AlbumArtist -Artist yourfile.ext` to confirm it
-  actually returns something sensible for your files.
+  aif ape`. This only gates which files get an mtime entry (for change
+  detection and the `added` filter) - metadata itself comes from MPD
+  regardless of extension, but a file with no matching mtime entry never
+  makes it into the cache. `.wav` and `.wma` are deliberately excluded by
+  default - tagging conventions for those vary too much (RIFF INFO vs.
+  ID3 chunks for WAV, inconsistent ASF tag usage for WMA) across encoders
+  to trust blindly. Add your own extensions here if needed.
 - `duplicate=false` deduplicates by title only (not artist+title), so two
   different artists with a coincidentally identical song title would
   collapse into one entry. For the intended use case (same artist,
   best-of vs. studio album) this is the desired behavior.
-- Year is read from `-Year`, falling back to `-Date`, falling back to
-  `-ContentCreateDate` (the QuickTime "©day" atom iTunes-tagged M4A files
-  often use instead) - in that order.
+- Year comes from MPD's `Date` tag - the first 4 consecutive digits found
+  in it, so both plain-year (`2023`) and full-date (`2023-01-01`) formats
+  work.
 - `added` is based on the file's mtime, not a real "date added to
   library" tag (no audio format reliably stores that). If you re-copy or
   re-tag a file later, its mtime - and therefore its `added` value -

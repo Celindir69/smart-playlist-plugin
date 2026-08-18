@@ -2,8 +2,9 @@
 
 echo "Uninstalling Smart Playlists"
 
-# Deliberately NOT removing exiftool/jq - they're common general-purpose
-# tools other plugins or the user's own scripts might also depend on.
+# Deliberately NOT removing jq - it's a common general-purpose tool other
+# plugins or the user's own scripts might also depend on. mpc is part of
+# Volumio's base image and was never installed by this plugin anyway.
 # Deliberately NOT removing generated playlists under /data/playlist/ or
 # /data/smart_playlists_data/ (rules file, cache, manifest, debug log) -
 # those are the user's data, not plugin installation artifacts, and are
