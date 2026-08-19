@@ -1,12 +1,12 @@
 {
   "name": "smart_playlists",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "description": "Rule-based playlist generator: builds native Volumio playlists from artist/album/genre/year/track/duration/added-date filters, with sorting and deduplication.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "your-name-here",
+  "author": "Celindir",
   "license": "MIT",
   "repository": "https://github.com/you/volumio-smart-playlists",
   "volumio_info": {
