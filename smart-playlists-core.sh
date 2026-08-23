@@ -349,7 +349,18 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   # Lines without "|" behave exactly as before (artist-OR-list only).
   IFS='|' read -r -a line_parts <<< "$rest"
   artist_part="${line_parts[0]}"
-  filter_parts=("${line_parts[@]:1}")
+  # "${line_parts[@]:1}" would be the natural way to get "everything after
+  # the first element", but on bash older than 4.4 that expansion throws
+  # "unbound variable" under "set -u" specifically when the result is
+  # EMPTY (i.e. a line with no "|" filters at all, just an artist list) -
+  # a real bash bug, fixed in 4.4, but still very much alive on the older
+  # bash shipped with some Volumio images. Guarding the count sidesteps it
+  # entirely instead of relying on that expansion's edge-case behavior.
+  if (( ${#line_parts[@]} > 1 )); then
+    filter_parts=("${line_parts[@]:1}")
+  else
+    filter_parts=()
+  fi
 
   # Artist part "*" (or simply empty/blank) means "match all artists" -
   # useful for playlists that only filter on non-artist fields, e.g. a
