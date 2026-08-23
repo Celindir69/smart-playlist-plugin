@@ -378,15 +378,24 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     # in a SINGLE awk pass over the whole cache instead of in a bash loop
     # that spawns several external processes (tr/sed) per cache line -
     # on large libraries that was the bottleneck.
-    for want in "${wanted[@]}"; do
-      norm_want="$(normalize "$want")"
-      [[ -z "$norm_want" ]] && continue
-      if [[ -n "$wanted_joined" ]]; then
-        wanted_joined+=$'\x1f'"$norm_want"
-      else
-        wanted_joined="$norm_want"
-      fi
-    done
+    #
+    # "(( ${#arr[@]} > 0 ))" guards below: on bash older than 4.4,
+    # expanding "${arr[@]}" for a genuinely EMPTY array throws "unbound
+    # variable" under "set -u" - a real, well-known bash bug (fixed in
+    # 4.4), still alive on some older Volumio images. "${#arr[@]}" (the
+    # length) is unaffected on every bash version, so checking it first
+    # sidesteps the bug entirely instead of ever expanding an empty array.
+    if (( ${#wanted[@]} > 0 )); then
+      for want in "${wanted[@]}"; do
+        norm_want="$(normalize "$want")"
+        [[ -z "$norm_want" ]] && continue
+        if [[ -n "$wanted_joined" ]]; then
+          wanted_joined+=$'\x1f'"$norm_want"
+        else
+          wanted_joined="$norm_want"
+        fi
+      done
+    fi
   fi
 
   # Parse filter parts: each "|"-separated part is one AND-group.
@@ -421,6 +430,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   sort_spec=""
   limit_n=""
   filters_joined=""
+  if (( ${#filter_parts[@]} > 0 )); then
   for filt in "${filter_parts[@]}"; do
     filt="$(printf '%s' "$filt" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
     [[ -z "$filt" ]] && continue
@@ -454,31 +464,33 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     group_joined=""
     group_total=0
     group_negative=0
-    for sub in "${subconds[@]}"; do
-      sub="$(printf '%s' "$sub" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
-      [[ -z "$sub" ]] && continue
-      if [[ "$sub" =~ ^([A-Za-z]+)[[:space:]]*(\>=|\<=|!=|!~|\>|\<|=|~)[[:space:]]*(.*)$ ]]; then
-        ffield="$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]')"
-        fop="${BASH_REMATCH[2]}"
-        fval="$(printf '%s' "${BASH_REMATCH[3]}" | sed 's/[[:space:]]*$//')"
-        case "$ffield" in
-          album|genre|year|title|artist|track|duration|added) ;;
-          *) log "Unknown filter field ignored: $ffield (line: $line)"; continue ;;
-        esac
-        group_total=$((group_total + 1))
-        if [[ "$fop" == "!=" || "$fop" == "!~" ]]; then
-          group_negative=$((group_negative + 1))
-        fi
-        entry="${ffield}"$'\x1d'"${fop}"$'\x1d'"${fval}"
-        if [[ -n "$group_joined" ]]; then
-          group_joined+=$'\x1c'"$entry"
+    if (( ${#subconds[@]} > 0 )); then
+      for sub in "${subconds[@]}"; do
+        sub="$(printf '%s' "$sub" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+        [[ -z "$sub" ]] && continue
+        if [[ "$sub" =~ ^([A-Za-z]+)[[:space:]]*(\>=|\<=|!=|!~|\>|\<|=|~)[[:space:]]*(.*)$ ]]; then
+          ffield="$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]')"
+          fop="${BASH_REMATCH[2]}"
+          fval="$(printf '%s' "${BASH_REMATCH[3]}" | sed 's/[[:space:]]*$//')"
+          case "$ffield" in
+            album|genre|year|title|artist|track|duration|added) ;;
+            *) log "Unknown filter field ignored: $ffield (line: $line)"; continue ;;
+          esac
+          group_total=$((group_total + 1))
+          if [[ "$fop" == "!=" || "$fop" == "!~" ]]; then
+            group_negative=$((group_negative + 1))
+          fi
+          entry="${ffield}"$'\x1d'"${fop}"$'\x1d'"${fval}"
+          if [[ -n "$group_joined" ]]; then
+            group_joined+=$'\x1c'"$entry"
+          else
+            group_joined="$entry"
+          fi
         else
-          group_joined="$entry"
+          log "Invalid filter ignored: '$sub' (line: $line)"
         fi
-      else
-        log "Invalid filter ignored: '$sub' (line: $line)"
-      fi
-    done
+      done
+    fi
 
     # Likely-mistake check: a comma-group ("OR") made up ENTIRELY of
     # negative conditions (!=, !~) is almost never what was intended.
@@ -498,6 +510,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
       filters_joined="$group_joined"
     fi
   done
+  fi
 
   # Parse the sort spec into ordered (key, direction) pairs. Keys are
   # concatenated without a separator, so we greedily match a known key
@@ -755,9 +768,11 @@ done < "$INPUT_FILE"
 # has 0 matches are kept, since their name is still in current_names
 # (see above).
 declare -A new_manifest_set=()
-for n in "${current_names[@]}"; do
-  new_manifest_set["$n"]=1
-done
+if (( ${#current_names[@]} > 0 )); then
+  for n in "${current_names[@]}"; do
+    new_manifest_set["$n"]=1
+  done
+fi
 
 # Names we failed to delete stay tracked so cleanup is retried on the
 # next run (e.g. once a permission/ownership issue is fixed) instead of
@@ -792,12 +807,16 @@ if [[ -f "$MANIFEST_FILE" ]]; then
 fi
 
 : > "$MANIFEST_FILE"
-for n in "${current_names[@]}"; do
-  printf '%s\n' "$n" >> "$MANIFEST_FILE"
-done
-for n in "${failed_removals[@]}"; do
-  printf '%s\n' "$n" >> "$MANIFEST_FILE"
-done
+if (( ${#current_names[@]} > 0 )); then
+  for n in "${current_names[@]}"; do
+    printf '%s\n' "$n" >> "$MANIFEST_FILE"
+  done
+fi
+if (( ${#failed_removals[@]} > 0 )); then
+  for n in "${failed_removals[@]}"; do
+    printf '%s\n' "$n" >> "$MANIFEST_FILE"
+  done
+fi
 
 log "Done"
 
