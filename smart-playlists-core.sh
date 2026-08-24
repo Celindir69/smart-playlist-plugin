@@ -4,8 +4,9 @@
 #
 # Automatically builds native Volumio 3 playlists from a plain text file of
 # rules: artist list (OR), plus optional AND/OR filters on album, genre,
-# year, title, artist, track number, and duration, with optional
-# deduplication by title. See README.md for the full syntax reference.
+# year, originalyear, title, artist, albumartist, comment, track number,
+# and duration, with optional deduplication by title and optional
+# various-artists matching. See README.md for the full syntax reference.
 # =============================================================================
 set -euo pipefail
 
@@ -124,8 +125,8 @@ while IFS='|' read -r lbl pfx; do
   URI_PREFIX+=("$pfx")
 done <<< "$URI_PREFIXES_RAW"
 
-# Cache format (tab-separated, 9 columns):
-#   mtime  AlbumArtist  FilePath  Title  Album  Genre  Year  Track  Duration
+# Cache format (tab-separated, 12 columns):
+#   mtime  AlbumArtist  Artist  FilePath  Title  Album  Genre  Year  OriginalYear  Comment  Track  Duration
 #
 # Rebuilds CACHE_FILE entirely from MPD's own database on every run
 # instead of scanning files one by one. No incremental read/diff of a
@@ -186,9 +187,15 @@ update_cache() {
   # correctly-tagged files. \x1f can't realistically collide with real
   # tag content and matches the separator convention already used
   # elsewhere in this script for structured data passed to awk.
+  #
+  # %comment% requires "comment" to be added to mpd.conf's
+  # "metadata_to_use" (it's the one common tag MPD does NOT expose by
+  # default - unlike albumartist/artist/originaldate, which are already
+  # on by default) - see README "How metadata is read" for the exact
+  # config change and why a database rebuild is required afterwards.
   local mpd_raw="$TMP_ROOT/mpd_meta_raw.tsv"
   local mpd_err="$TMP_ROOT/mpd_meta_err.log"
-  if ! timeout "$MPD_TIMEOUT" mpc -f $'%file%\x1f%albumartist%\x1f%artist%\x1f%title%\x1f%album%\x1f%genre%\x1f%date%\x1f%track%\x1f%time%' search any "" > "$mpd_raw" 2>"$mpd_err"; then
+  if ! timeout "$MPD_TIMEOUT" mpc -f $'%file%\x1f%albumartist%\x1f%artist%\x1f%title%\x1f%album%\x1f%genre%\x1f%date%\x1f%originaldate%\x1f%comment%\x1f%track%\x1f%time%' search any "" > "$mpd_raw" 2>"$mpd_err"; then
     echo "Error: 'mpc search any' failed or timed out (${MPD_TIMEOUT}s): $(cat "$mpd_err" 2>/dev/null)" >&2
     exit 1
   fi
@@ -203,6 +210,16 @@ update_cache() {
   # the rest of the cache/filter logic (a non-empty placeholder, since
   # "IFS=$'\t' read" treats tab as IFS whitespace and collapses runs of
   # empty/adjacent delimiters, which would misalign columns otherwise).
+  #
+  # AlbumArtist and Artist are kept as SEPARATE raw columns (no fallback
+  # merge here) so they can be filtered independently (fields
+  # "albumartist"/"artist") and so the artist-list header match can
+  # decide per playlist line (via "various=") whether to match against
+  # AlbumArtist (with fallback to Artist when blank - the default, e.g.
+  # a regular studio album) or against the raw Artist tag (for pulling
+  # in compilation/various-artist tracks where AlbumArtist is set to
+  # "Various Artists" but Artist holds the real performer) - see the
+  # matchTarget() awk function further below.
   local mpd_parsed="$TMP_ROOT/mpd_meta_parsed.tsv"
   awk -F'\x1f' -v OFS='\t' '
     function parseTime(t,   n, parts, secs, i) {
@@ -213,39 +230,45 @@ update_cache() {
       for (i = 1; i <= n; i++) secs = secs * 60 + (parts[i] + 0)
       return secs
     }
+    function parseYear(d) {
+      if (match(d, /[0-9][0-9][0-9][0-9]/)) return substr(d, RSTART, 4)
+      return "-"
+    }
     {
-      fp = $1; aa = $2; ar = $3; ti = $4; al = $5; ge = $6; da = $7; trk = $8; tm = $9
-      if (aa == "") aa = ar
+      fp = $1; aa = $2; ar = $3; ti = $4; al = $5; ge = $6; da = $7; od = $8; cm = $9; trk = $10; tm = $11
       if (aa == "") aa = "-"
+      if (ar == "") ar = "-"
       if (ti == "") ti = "-"
       if (al == "") al = "-"
       if (ge == "") ge = "-"
-      if (match(da, /[0-9][0-9][0-9][0-9]/)) { yr = substr(da, RSTART, 4) } else { yr = "-" }
+      if (cm == "") cm = "-"
+      yr = parseYear(da)
+      oyr = parseYear(od)
       if (match(trk, /^[0-9]+/)) { trk = substr(trk, RSTART, RLENGTH) } else { trk = "-" }
       dur = parseTime(tm)
-      gsub(/[\t\n\r]/, " ", aa); gsub(/[\t\n\r]/, " ", ti); gsub(/[\t\n\r]/, " ", al); gsub(/[\t\n\r]/, " ", ge); gsub(/[\t\n\r]/, " ", fp)
-      print fp, aa, ti, al, ge, yr, trk, dur
+      gsub(/[\t\n\r]/, " ", aa); gsub(/[\t\n\r]/, " ", ar); gsub(/[\t\n\r]/, " ", ti); gsub(/[\t\n\r]/, " ", al); gsub(/[\t\n\r]/, " ", ge); gsub(/[\t\n\r]/, " ", cm); gsub(/[\t\n\r]/, " ", fp)
+      print fp, aa, ar, ti, al, ge, yr, oyr, cm, trk, dur
     }
   ' "$mpd_raw" > "$mpd_parsed"
 
   declare -A meta_by_path=()
-  while IFS=$'\t' read -r fp aa ti al ge yr trk dur; do
+  while IFS=$'\t' read -r fp aa ar ti al ge yr oyr cm trk dur; do
     [[ -z "$fp" ]] && continue
-    meta_by_path["$fp"]="$aa"$'\t'"$ti"$'\t'"$al"$'\t'"$ge"$'\t'"$yr"$'\t'"$trk"$'\t'"$dur"
+    meta_by_path["$fp"]="$aa"$'\t'"$ar"$'\t'"$ti"$'\t'"$al"$'\t'"$ge"$'\t'"$yr"$'\t'"$oyr"$'\t'"$cm"$'\t'"$trk"$'\t'"$dur"
   done < "$mpd_parsed"
 
   local new_cache_file="${CACHE_FILE}.new"
   : > "$new_cache_file"
-  local relp aa ti al ge yr trk dur meta
+  local relp aa ar ti al ge yr oyr cm trk dur meta
   for relp in "${!cur_mtime[@]}"; do
     meta="${meta_by_path[$relp]:-}"
     if [[ -n "$meta" ]]; then
-      IFS=$'\t' read -r aa ti al ge yr trk dur <<< "$meta"
+      IFS=$'\t' read -r aa ar ti al ge yr oyr cm trk dur <<< "$meta"
     else
-      aa="-"; ti="-"; al="-"; ge="-"; yr="-"; trk="-"; dur="-"
+      aa="-"; ar="-"; ti="-"; al="-"; ge="-"; yr="-"; oyr="-"; cm="-"; trk="-"; dur="-"
     fi
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-      "${cur_mtime[$relp]}" "$aa" "$relp" "$ti" "$al" "$ge" "$yr" "$trk" "$dur" >> "$new_cache_file"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "${cur_mtime[$relp]}" "$aa" "$ar" "$relp" "$ti" "$al" "$ge" "$yr" "$oyr" "$cm" "$trk" "$dur" >> "$new_cache_file"
   done
   mv "$new_cache_file" "$CACHE_FILE"
 
@@ -343,9 +366,12 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   # Line format (after the optional name prefix): "Artist1;Artist2;...|field<op>value|field<op>value|..."
   # - Part before the first "|": artist list (OR, as before)
   # - every further "|" part: filter, AND-combined with all others
-  # - fields: album, genre, year, title, artist
+  # - fields: album, genre, year, originalyear, title, artist, albumartist,
+  #   comment, track, duration, added
   # - operators: = != ~ (contains) !~ (does not contain) > >= < <=
   # - special field "duplicate=false" deduplicates by title (see below)
+  # - special field "various=true" matches the artist list against the
+  #   raw Artist tag instead of AlbumArtist (see below)
   # Lines without "|" behave exactly as before (artist-OR-list only).
   IFS='|' read -r -a line_parts <<< "$rest"
   artist_part="${line_parts[0]}"
@@ -416,8 +442,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   # "sort=<key><+|-><key><+|->..." is likewise a special field, not a
   # per-track filter: it controls the output ORDER of the already-
   # filtered tracks instead of random shuffling. Keys: title, track,
-  # artist, album, year. "+" = ascending, "-" = descending, direction
-  # defaults to "+" if omitted. Keys are concatenated directly, e.g.
+  # artist, album, year, added, originalyear. "+" = ascending,
+  # "-" = descending, direction defaults to "+" if omitted. Keys are
+  # concatenated directly, e.g.
   # "sort=album-track+" groups by album Z->A, tracks within each album
   # 1->N. Must also be its own "|" segment. "sort=random" (or omitting
   # sort entirely) keeps the original random order.
@@ -426,9 +453,20 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   # to the first N tracks instead of writing all matches. Combined with
   # "sort=", this gives e.g. "10 most recently added tracks" or
   # "20 longest tracks". Must be its own "|" segment.
+  #
+  # "various=true" is likewise special: controls what the ARTIST LIST
+  # (the part before the first "|") is matched against. Default (false)
+  # matches AlbumArtist (falling back to Artist when AlbumArtist is
+  # blank) - unchanged from before, so a regular artist/album stays
+  # matched by its AlbumArtist. Setting "various=true" matches the raw
+  # Artist tag instead, which is what you want for a playlist that
+  # should also pick up that artist's appearances on compilations tagged
+  # AlbumArtist="Various Artists" (with the real performer only in
+  # Artist). Must be its own "|" segment.
   dedupe_titles=0
   sort_spec=""
   limit_n=""
+  various_line=0
   filters_joined=""
   if (( ${#filter_parts[@]} > 0 )); then
   for filt in "${filter_parts[@]}"; do
@@ -441,6 +479,16 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         false|0|no) dedupe_titles=1 ;;
         true|1|yes) dedupe_titles=0 ;;
         *) log "Invalid value for duplicate ignored: '$fval' (line: $line)" ;;
+      esac
+      continue
+    fi
+
+    if [[ "$filt" =~ ^various[[:space:]]*=[[:space:]]*(.*)$ ]]; then
+      fval="$(printf '%s' "${BASH_REMATCH[1]}" | sed 's/[[:space:]]*$//')"
+      case "$(printf '%s' "$fval" | tr '[:upper:]' '[:lower:]')" in
+        true|1|yes) various_line=1 ;;
+        false|0|no) various_line=0 ;;
+        *) log "Invalid value for various ignored: '$fval' (line: $line)" ;;
       esac
       continue
     fi
@@ -473,7 +521,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
           fop="${BASH_REMATCH[2]}"
           fval="$(printf '%s' "${BASH_REMATCH[3]}" | sed 's/[[:space:]]*$//')"
           case "$ffield" in
-            album|genre|year|title|artist|track|duration|added) ;;
+            album|genre|year|originalyear|title|artist|albumartist|comment|track|duration|added) ;;
             *) log "Unknown filter field ignored: $ffield (line: $line)"; continue ;;
           esac
           group_total=$((group_total + 1))
@@ -524,7 +572,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   if [[ -n "$sort_spec" && "$sort_spec" != "random" ]]; then
     remaining="$sort_spec"
     while [[ -n "$remaining" ]]; do
-      if [[ "$remaining" =~ ^(album|artist|title|track|year|added)([+-]?) ]]; then
+      if [[ "$remaining" =~ ^(album|artist|title|track|year|added|originalyear)([+-]?) ]]; then
         sort_keys+=("${BASH_REMATCH[1]}")
         dir="${BASH_REMATCH[2]}"
         [[ -z "$dir" ]] && dir="+"
@@ -544,7 +592,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   if [[ "$all_artists" -eq 0 && -z "$wanted_joined" ]]; then
     : > "$tmp_tracks"
   else
-    awk -F'\t' -v wanted="$wanted_joined" -v filters="$filters_joined" -v dedupe="$dedupe_titles" -v now="$(date +%s)" -v allArtists="$all_artists" '
+    awk -F'\t' -v wanted="$wanted_joined" -v filters="$filters_joined" -v dedupe="$dedupe_titles" -v now="$(date +%s)" -v allArtists="$all_artists" -v variousLine="$various_line" '
       BEGIN {
         n = split(wanted, arr, "\037")
         for (i = 1; i <= n; i++) wantedSet[arr[i]] = 1
@@ -571,9 +619,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         gsub(/[ \t\-_.]/, "", t)
         return t
       }
-      # Text comparison (album/genre/title/artist): = != exact
-      # (case-insensitive, normalized), ~ !~ substring (case-insensitive,
-      # raw, not normalized)
+      # Text comparison (album/genre/title/artist/albumartist/comment):
+      # = != exact (case-insensitive, normalized), ~ !~ substring
+      # (case-insensitive, raw, not normalized)
       function textMatch(val, op, want,   nv, nw) {
         if (op == "~")  return (index(tolower(val), tolower(want)) > 0)
         if (op == "!~") return (index(tolower(val), tolower(want)) == 0)
@@ -582,7 +630,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         if (op == "!=") return (nv != nw)
         return 1
       }
-      # Numeric comparison (year)
+      # Numeric comparison (year/originalyear/track/duration/added)
       function numMatch(val, op, want,   nvv, nwv) {
         if (val == "" || val == "-") return 0
         nvv = val + 0; nwv = want + 0
@@ -594,15 +642,29 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         if (op == "<=") return (nvv <= nwv)
         return 1
       }
+      # What the artist-list header (before the first "|") is matched
+      # against: raw Artist when this line has "various=true" (to pick
+      # up compilation tracks where AlbumArtist="Various Artists" but
+      # Artist holds the real performer), otherwise AlbumArtist with a
+      # fallback to Artist when AlbumArtist is blank - unchanged default
+      # behavior for regular albums.
+      function matchTarget(aa, ar, variousLine) {
+        if (variousLine == 1) return ar
+        if (aa != "" && aa != "-") return aa
+        return ar
+      }
       # Evaluate a single sub-condition against the appropriate field.
-      function evalCond(f, op, v, aa, ti, al, ge, yr, trk, dur, mt, now,   daysAgo) {
+      function evalCond(f, op, v, aa, ar, ti, al, ge, yr, oyr, cm, trk, dur, mt, now,   daysAgo) {
         if (f == "year")         return numMatch(yr, op, v)
+        if (f == "originalyear") return numMatch(oyr, op, v)
         if (f == "track")        return numMatch(trk, op, v)
         if (f == "duration")     return numMatch(dur, op, v)
         if (f == "album")        return textMatch(al, op, v)
         if (f == "genre")        return textMatch(ge, op, v)
         if (f == "title")        return textMatch(ti, op, v)
-        if (f == "artist")       return textMatch(aa, op, v)
+        if (f == "artist")       return textMatch(ar, op, v)
+        if (f == "albumartist")  return textMatch(aa, op, v)
+        if (f == "comment")      return textMatch(cm, op, v)
         if (f == "added") {
           # Days since the file mtime (proxy for "date added" - the
           # closest thing available without a dedicated tag; resets if a
@@ -614,8 +676,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         return 1
       }
       {
-        mt = $1; aa = $2; fp = $3; ti = $4; al = $5; ge = $6; yr = $7; trk = $8; dur = $9
-        if (allArtists != 1 && !(norm(aa) in wantedSet)) next
+        mt = $1; aa = $2; ar = $3; fp = $4; ti = $5; al = $6; ge = $7; yr = $8; oyr = $9; cm = $10; trk = $11; dur = $12
+        dispArtist = matchTarget(aa, ar, variousLine)
+        if (allArtists != 1 && !(norm(dispArtist) in wantedSet)) next
 
         # Each group is AND-combined with the others; within a group,
         # sub-conditions are OR-combined (conjunctive normal form).
@@ -623,7 +686,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         for (gi = 1; gi <= numGroups; gi++) {
           groupOk = 0
           for (sj = 1; sj <= groupSize[gi]; sj++) {
-            if (evalCond(gField[gi, sj], gOp[gi, sj], gVal[gi, sj], aa, ti, al, ge, yr, trk, dur, mt, now)) {
+            if (evalCond(gField[gi, sj], gOp[gi, sj], gVal[gi, sj], aa, ar, ti, al, ge, yr, oyr, cm, trk, dur, mt, now)) {
               groupOk = 1
               break
             }
@@ -642,7 +705,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
           seenTitle[nt] = 1
         }
 
-        print fp "\t" ti "\t" al "\t" aa "\t" trk "\t" yr "\t" (mt == "" ? "" : int((now - mt) / 86400))
+        print fp "\t" ti "\t" al "\t" dispArtist "\t" trk "\t" yr "\t" (mt == "" ? "" : int((now - mt) / 86400)) "\t" oyr
       }
     ' "$CACHE_FILE" > "$tmp_tracks"
   fi
@@ -657,11 +720,11 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     ordered_tracks="$TMP_ROOT/ordered_$$_${RANDOM}"
     if (( ${#sort_keys[@]} > 0 )); then
       # Column layout in tmp_tracks: 1=filepath 2=title 3=album 4=artist
-      # 5=track 6=year 7=added (days since mtime). Build one -k option
-      # per requested sort key, in order, so multi-key sorts (e.g. album
-      # desc, then track asc within each album) work as expected. "-s"
-      # keeps the sort stable so equal keys don't get reshuffled between
-      # runs.
+      # 5=track 6=year 7=added (days since mtime) 8=originalyear. Build
+      # one -k option per requested sort key, in order, so multi-key
+      # sorts (e.g. album desc, then track asc within each album) work
+      # as expected. "-s" keeps the sort stable so equal keys don't get
+      # reshuffled between runs.
       sort_args=(-t $'\t' -s)
       for si in "${!sort_keys[@]}"; do
         key="${sort_keys[$si]}"; dir="${sort_dirs[$si]}"
@@ -672,6 +735,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
           track)  col=5; numeric=1 ;;
           year)   col=6; numeric=1 ;;
           added)  col=7; numeric=1 ;;
+          originalyear) col=8; numeric=1 ;;
         esac
         mod=""
         [[ "$dir" == "-" ]] && mod="r"

@@ -2,9 +2,11 @@
 
 Automatically builds native Volumio playlists from a plain text file of
 rules - artist lists with optional AND/OR filters on album, genre, year,
-title, track number, duration, and days-since-added, plus custom sort
-order, track limits, and deduplication (e.g. when a best-of/live compilation
-and the original studio album are both in your library).
+originalyear, title, artist, albumartist, comment, track number, duration,
+and days-since-added, plus custom sort order, track limits, deduplication
+(e.g. when a best-of/live compilation and the original studio album are
+both in your library), and optional various-artists matching (for pulling
+an artist's appearances on compilations into their own playlist).
 
 Available two ways:
 - **As a Volumio plugin** (recommended) - a settings page in the Volumio UI
@@ -24,8 +26,9 @@ across Internal Storage, a USB drive, and a NAS share on Volumio 3.
 - **Scans all of Volumio's standard music sources automatically** - Internal
   Storage, USB, and NAS - no path configuration needed. A source that isn't
   present on your system (e.g. no NAS connected) is silently skipped.
-- Reads metadata (AlbumArtist, Artist, Title, Album, Genre, Year, Track,
-  Duration) directly from **Volumio's own MPD database** via `mpc` - the
+- Reads metadata (AlbumArtist, Artist, Title, Album, Genre, Year,
+  OriginalYear, Comment, Track, Duration) directly from **Volumio's own
+  MPD database** via `mpc` - the
   same index that powers Browse/Search, so there's no separate per-file
   scan to wait for at all (a ~24k track library that used to take ~20
   minutes on first run with a per-file tag scanner now takes a couple of
@@ -126,9 +129,27 @@ exits with a clear error rather than guessing at an alternative (on a
 correctly installed Volumio, MPD is always there).
 
 What this means in practice:
-- **Artist, Album, Title, Genre, Year, Track, Duration**: come from MPD.
-  No incremental cache is needed for these - a single MPD query is fast
-  enough to just re-run in full on every invocation.
+- **AlbumArtist, Artist, Album, Title, Genre, Year, OriginalYear,
+  Comment, Track, Duration**: come from MPD. No incremental cache is
+  needed for these - a single MPD query is fast enough to just re-run in
+  full on every invocation.
+- **AlbumArtist and Artist are read as separate tags**, not merged - see
+  "Compilations / Various Artists" below for why that matters.
+- **`comment` needs an mpd.conf change.** MPD only exposes to `mpc` the
+  tags listed in mpd.conf's `metadata_to_use` - by default this is
+  "every known tag except `comment` and the `musicbrainz_*` ones", so
+  `AlbumArtist`/`Artist`/`OriginalDate` are already available, but
+  `Comment` is not until you add it explicitly:
+  ```
+  metadata_to_use    "artist,album,title,track,name,genre,date,composer,performer,disc,comment,albumartist,originaldate"
+  ```
+  (List every tag you actually want, not just `comment` - this setting
+  *replaces* the default list rather than adding to it.) After editing
+  `/etc/mpd.conf`, MPD's database must be **rebuilt, not just updated**,
+  for the change to take effect (Volumio: Settings -> My Music -> use
+  the "Rescan" / rebuild option, or `mpc rescan` followed by a restart of
+  the `mpd` service). If you don't need `comment` filters, you can skip
+  this entirely.
 - **`added`** (days since added): MPD doesn't track "date added", so it
   still comes from the file's filesystem mtime via a plain `find` pass -
   just listing files and their timestamps, fast regardless of library
@@ -159,6 +180,41 @@ Relevant environment variables (standalone script) / equivalent behavior
   giving up (default `120`).
 - `SMART_PLAYLISTS_URI_PREFIXES` - see above.
 
+### Compilations / Various Artists
+
+`AlbumArtist` and `Artist` are read as separate tags, which matters for
+how the artist list (the part of a rule line before the first `|`)
+decides what counts as a match:
+
+- **Default** (`various=false`, or simply omitted): matches against
+  `AlbumArtist`, falling back to `Artist` only when `AlbumArtist` is
+  blank. This is unchanged from before and is what you want for a
+  regular album, where every track's `AlbumArtist` is the artist itself.
+  A compilation tagged `AlbumArtist=Various Artists` will **not** match
+  here, even if an individual track's `Artist` is the artist you're
+  looking for.
+- **`various=true`** (must be its own `|` segment / its own rule field in
+  the plugin UI): matches against the raw `Artist` tag instead, so a
+  track on a `Various Artists` compilation is picked up as long as its
+  `Artist` tag names the right performer. Use this for a playlist that
+  should also include an artist's guest spots/compilation appearances,
+  not just their own albums.
+
+This is exactly the tagging convention MusicBrainz Picard and MP3tag
+both encourage for compilations: `AlbumArtist = Various Artists`,
+`Artist = <the actual performer of that track>`. The `albumartist` and
+`artist` filter fields (see below) expose the same two raw tags
+independently for use in AND/OR filters, e.g. `albumartist=VariousArtists`
+to build a "all my compilation tracks" playlist regardless of artist.
+
+```
+# Only Genesis' own albums
+Genesis Albums::Genesis
+
+# Genesis' own albums PLUS any compilation track where Genesis performed
+Genesis Everywhere::Genesis|various=true
+```
+
 ## Input file format
 
 **Plugin**: edit rules directly in the plugin's settings page (Playlist
@@ -186,8 +242,10 @@ is exactly equivalent to the more compact
   skipped.
 - Blank lines are skipped.
 - **Artist list**: any number of artist names separated by `;`, combined
-  with OR (a track matches if its AlbumArtist matches *any* of them).
-  Matching is case-insensitive and ignores spaces/dashes/underscores/dots.
+  with OR (a track matches if its AlbumArtist matches *any* of them - or
+  its Artist tag, if `various=true` is set; see "Compilations / Various
+  Artists" above). Matching is case-insensitive and ignores
+  spaces/dashes/underscores/dots.
 - **`*` (wildcard artist)**: use `*` instead of an artist list to match
   tracks from **any** artist - useful for library-wide playlists that
   only filter on non-artist fields, e.g. `Recently Added::*|added<5`.
@@ -208,23 +266,36 @@ is exactly equivalent to the more compact
   means `(fieldA OR fieldB) AND fieldC` - i.e. conjunctive normal form
   (AND of ORs), which covers the vast majority of real-world queries
   without needing full parenthesized boolean expressions.
-  - Fields: `album`, `genre`, `year`, `title`, `artist`, `track`,
-    `duration` (seconds), `added` (days since the file's mtime - see
-    caveat below)
+  - Fields: `album`, `genre`, `year`, `originalyear`, `title`, `artist`
+    (raw Artist tag), `albumartist` (raw AlbumArtist tag), `comment`,
+    `track`, `duration` (seconds), `added` (days since the file's mtime -
+    see caveat below)
   - Operators: `=`, `!=`, `~` (contains), `!~` (does not contain), `>`,
     `>=`, `<`, `<=`
-  - Numeric comparisons (`>`, `>=`, `<`, `<=`) apply to `year`, `track`,
-    `duration`, and `added`.
+  - Numeric comparisons (`>`, `>=`, `<`, `<=`) apply to `year`,
+    `originalyear`, `track`, `duration`, and `added`.
+  - `originalyear` comes from MPD's `OriginalDate` tag (what Picard/MP3tag
+    write for a reissue's *original* release date) - independent of
+    `year`, which still reflects `Date` (the specific release/reissue
+    you actually have). There's no fallback between the two: a track with
+    no `OriginalDate` tag at all simply won't match any `originalyear`
+    filter, so an `originalyear` filter only makes sense once you've
+    actually tagged original release dates.
   - Note: if a value legitimately contains a comma, it will be
     mis-parsed as an OR split - this is a known limitation.
 - **`duplicate=false`** (optional, special field, must be its own `|`
   segment): deduplicates the resulting playlist by normalized track title,
   keeping only the first match per title. Default is `true` (duplicates
   allowed, i.e. original behavior).
+- **`various=true`** (optional, special field, must be its own `|`
+  segment): matches the artist list against the raw Artist tag instead of
+  AlbumArtist - see "Compilations / Various Artists" above. Default is
+  `false` (original AlbumArtist-based behavior).
 - **`sort=<key><+|-><key><+|->...`** (optional, special field, must be its
   own `|` segment): controls the track ORDER in the generated playlist
   instead of the default random shuffle.
-  - Keys: `title`, `track`, `artist`, `album`, `year`, `added`
+  - Keys: `title`, `track`, `artist`, `album`, `year`, `added`,
+    `originalyear`
   - `+` = ascending, `-` = descending; direction defaults to `+` if
     omitted (e.g. `sort=title` behaves like `sort=title+`)
   - Keys are concatenated directly with no separator, e.g.
@@ -275,6 +346,19 @@ New Genesis::Genesis|added<30|sort=added+|limit=15
 # Wildcard artist: library-wide, not tied to any specific artist,
 # pulls from Internal Storage, USB, and NAS all at once
 Recently Added (All Artists)::*|added<5|limit=20
+
+# Genesis' own albums PLUS their compilation/guest appearances
+# (AlbumArtist=Various Artists, Artist=Genesis on those tracks)
+Genesis Everywhere::Genesis|various=true
+
+# Compilation tracks only, regardless of artist
+Various Artists Compilations::*|albumartist=VariousArtists
+
+# Reissues: use the ORIGINAL release year, not the reissue year
+70s Originals::*|originalyear>=1970|originalyear<1980
+
+# Filter on a free-text Comment tag (e.g. "Remastered", "Live bootleg", ...)
+Remastered Only::*|comment~Remaster
 
 # Combined: everything together
 70s Rock, No Live Duplicates::Genesis;Supertramp;Pink Floyd|album!~Live|year>=1973|year<=1979|duplicate=false
@@ -415,9 +499,14 @@ above for how the `uri` differs between Internal Storage/USB and NAS.
   different artists with a coincidentally identical song title would
   collapse into one entry. For the intended use case (same artist,
   best-of vs. studio album) this is the desired behavior.
-- Year comes from MPD's `Date` tag - the first 4 consecutive digits found
-  in it, so both plain-year (`2023`) and full-date (`2023-01-01`) formats
-  work.
+- Year comes from MPD's `Date` tag, `originalyear` from `OriginalDate` -
+  in both cases the first 4 consecutive digits found in the tag, so both
+  plain-year (`2023`) and full-date (`2023-01-01`) formats work.
+- The artist-list header match and the `artist`/`albumartist` filter
+  fields are all case-insensitive and ignore spaces/dashes/underscores/
+  dots for `=`/`!=` comparisons (same normalization as everywhere else in
+  this script) - "Various Artists" and "various-artists" are treated as
+  identical.
 - `added` is based on the file's mtime, not a real "date added to
   library" tag (no audio format reliably stores that). If you re-copy or
   re-tag a file later, its mtime - and therefore its `added` value -
@@ -451,6 +540,18 @@ file (wherever it was) and let the current version rebuild it fresh in its
 new location - trying to migrate the old cache format isn't worth the
 effort. Your existing rules just need to be copied into the new
 `smart_playlists.txt` location (or pasted into the plugin's UI fields).
+
+- **AlbumArtist/Artist/OriginalDate/Comment support** (this version): the
+  cache format gained new columns (Artist is now read separately from
+  AlbumArtist, plus OriginalYear and Comment) and the `artist` filter
+  field now means the raw Artist tag rather than AlbumArtist-with-
+  fallback (use `albumartist` for the old meaning). No manual step is
+  needed for the cache itself - it's rebuilt from scratch on every run
+  regardless of version, so the new columns simply appear on the next
+  run. If you want to use `comment` filters, add `comment` to mpd.conf's
+  `metadata_to_use` and rebuild MPD's database first (see "How metadata
+  is read" above) - without that change, `comment` will just always be
+  empty.
 
 ## License
 
