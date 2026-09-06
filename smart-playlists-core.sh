@@ -73,8 +73,15 @@ mkdir -p "$PLAYLIST_OUT_DIR"
 # under a long-lived daily cron/systemd-timer schedule - relevant on
 # space-constrained SD-card Volumio installs. Rotate once it exceeds
 # ~5 MB, keeping one previous copy.
+# NOT "mv" - on some devices (seen in practice: an overlay-root Volumio
+# image where /data/... files get individually tracked as their own
+# overlay mount once "copied up" into the writable layer), renaming OVER
+# an existing file fails with "Device or resource busy". Copy the old
+# content aside, then truncate the original in place instead - avoids
+# rename() entirely.
 if [[ -f "$DEBUG_LOG" ]] && (( $(stat -c%s "$DEBUG_LOG" 2>/dev/null || echo 0) > 5242880 )); then
-  mv -f "$DEBUG_LOG" "${DEBUG_LOG}.1"
+  cp -f "$DEBUG_LOG" "${DEBUG_LOG}.1" 2>/dev/null || true
+  : > "$DEBUG_LOG" 2>/dev/null || true
 fi
 
 exec 3>>"$DEBUG_LOG"
@@ -270,7 +277,16 @@ update_cache() {
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
       "${cur_mtime[$relp]}" "$aa" "$ar" "$relp" "$ti" "$al" "$ge" "$yr" "$oyr" "$cm" "$trk" "$dur" >> "$new_cache_file"
   done
-  mv "$new_cache_file" "$CACHE_FILE"
+  # NOT "mv" - on some devices (seen in practice: an overlay-root Volumio
+  # image where /data/... files get individually tracked as their own
+  # overlay mount once "copied up" into the writable layer), renaming
+  # OVER an existing file fails with "Device or resource busy". This
+  # would only bite from the SECOND run onward (once CACHE_FILE actually
+  # exists to be replaced) and, being unguarded, would silently kill the
+  # whole script under "set -e" right here. "cat > file" instead writes
+  # to the existing inode in place - no rename() involved.
+  cat "$new_cache_file" > "$CACHE_FILE"
+  rm -f "$new_cache_file"
 
   local final_count
   final_count=$(wc -l < "$CACHE_FILE" | tr -d ' ')
