@@ -672,7 +672,11 @@ while IFS= read -r line || [[ -n "$line" ]]; do
       # Evaluate a single sub-condition against the appropriate field.
       function evalCond(f, op, v, aa, ar, ti, al, ge, yr, oyr, cm, trk, dur, mt, now,   daysAgo) {
         if (f == "year")         return numMatch(yr, op, v)
-        if (f == "originalyear") return numMatch(oyr, op, v)
+        # Fall back to Year when OriginalDate is not tagged, so an
+        # originalyear filter still produces sensible matches on a library
+        # that mixes original-release-tagged and untagged files, instead of
+        # silently excluding every untagged track.
+        if (f == "originalyear") return numMatch((oyr == "-" ? yr : oyr), op, v)
         if (f == "track")        return numMatch(trk, op, v)
         if (f == "duration")     return numMatch(dur, op, v)
         if (f == "album")        return textMatch(al, op, v)
@@ -721,7 +725,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
           seenTitle[nt] = 1
         }
 
-        print fp "\t" ti "\t" al "\t" dispArtist "\t" trk "\t" yr "\t" (mt == "" ? "" : int((now - mt) / 86400)) "\t" oyr
+        # Same year fallback as evalCond() above, so sort=originalyear does
+        # not just dump every untagged track at one end of the order.
+        print fp "\t" ti "\t" al "\t" dispArtist "\t" trk "\t" yr "\t" (mt == "" ? "" : int((now - mt) / 86400)) "\t" (oyr == "-" ? yr : oyr)
       }
     ' "$CACHE_FILE" > "$tmp_tracks"
   fi
