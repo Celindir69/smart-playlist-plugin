@@ -725,7 +725,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
           seenTitle[nt] = 1
         }
 
-        print fp "\t" ti "\t" al "\t" dispArtist "\t" trk "\t" yr "\t" (mt == "" ? "" : int((now - mt) / 86400)) "\t" oyr
+        # Same year fallback as evalCond() above, so sort=originalyear does
+        # not just dump every untagged track at one end of the order.
+        print fp "\t" ti "\t" al "\t" dispArtist "\t" trk "\t" yr "\t" (mt == "" ? "" : int((now - mt) / 86400)) "\t" (oyr == "-" ? yr : oyr)
       }
     ' "$CACHE_FILE" > "$tmp_tracks"
   fi

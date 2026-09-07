@@ -277,9 +277,10 @@ is exactly equivalent to the more compact
   - `originalyear` comes from MPD's `OriginalDate` tag (what Picard/MP3tag
     write for a reissue's *original* release date) - independent of
     `year`, which still reflects `Date` (the specific release/reissue
-    you actually have). If a track has no `OriginalDate` tag at all, an
-    `originalyear` filter falls back to that track's `year` (`Date`)
-    instead of excluding it, so mixed libraries (some files with original
+    you actually have). If a track has no `OriginalDate` tag at all, both
+    an `originalyear` filter and `sort=originalyear` fall back to that
+    track's `year` (`Date`) instead of excluding it or grouping it at one
+    end of the sort order, so mixed libraries (some files with original
     release dates tagged, others not) still get sensible results without
     requiring every file to be tagged first.
   - Note: if a value legitimately contains a comma, it will be
