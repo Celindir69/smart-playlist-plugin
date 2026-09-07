@@ -150,6 +150,29 @@ What this means in practice:
   the "Rescan" / rebuild option, or `mpc rescan` followed by a restart of
   the `mpd` service). If you don't need `comment` filters, you can skip
   this entirely.
+- **`originalyear` needs a new enough MPD.** Unlike `comment`, this isn't a
+  `metadata_to_use` setting you can turn on - some older MPD releases don't
+  implement the `OriginalDate` tag *type* at all, so the daemon has nothing
+  to expose regardless of config. Confirmed missing entirely on MPD 0.20.0
+  (no `OriginalDate:` field even querying MPD directly over its raw
+  protocol, below `mpc`/format-strings entirely). If `originalyear`
+  filters/sorting behave exactly like `year` on your system, check your MPD
+  version (`mpc` itself may be too old to report `--version` usefully -
+  `dpkg -s mpd | grep Version` is more reliable) and query a known-tagged
+  file directly to confirm:
+  ```bash
+  mpc -f "%file%" search any "" | head -1   # copy a real path from the output
+  exec 3<>/dev/tcp/127.0.0.1/6600; read -r -u 3 x
+  printf 'find file "PASTE_THE_PATH_HERE"\n' >&3
+  while read -r -u 3 l; do echo "$l"; [[ "$l" == "OK" || "$l" == ACK* ]] && break; done
+  exec 3<&- 3>&-
+  ```
+  No `OriginalDate:` line in that output means your MPD build doesn't
+  support the tag - upgrading MPD standalone on Volumio isn't recommended
+  (it's managed as part of the OS image and could destabilize playback),
+  so on such a system `originalyear` filters/sorting will always fall back
+  to `year` (see above/below) rather than ever using a genuine original
+  release date.
 - **`added`** (days since added): MPD doesn't track "date added", so it
   still comes from the file's filesystem mtime via a plain `find` pass -
   just listing files and their timestamps, fast regardless of library
@@ -282,7 +305,10 @@ is exactly equivalent to the more compact
     track's `year` (`Date`) instead of excluding it or grouping it at one
     end of the sort order, so mixed libraries (some files with original
     release dates tagged, others not) still get sensible results without
-    requiring every file to be tagged first.
+    requiring every file to be tagged first. This same fallback also kicks
+    in on an MPD build too old to support the `OriginalDate` tag type at
+    all, regardless of how your files are tagged - see "How metadata is
+    read" above.
   - Note: if a value legitimately contains a comma, it will be
     mis-parsed as an OR split - this is a known limitation.
 - **`duplicate=false`** (optional, special field, must be its own `|`
