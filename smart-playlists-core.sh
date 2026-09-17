@@ -112,11 +112,15 @@ TMP_ROOT="$(mktemp -d)"
 trap 'rm -rf "$TMP_ROOT"' EXIT
 
 normalize() {
+  # NOTE: the "-" must come LAST in the tr -d set below - "tr -d ' -_.'"
+  # would make tr treat "space-underscore" as a RANGE (0x20-0x5F), which
+  # silently deletes digits and punctuation too (e.g. "U2" -> "u",
+  # "3 Doors Down" -> "doorsdown"). Placing "-" last keeps it literal.
   printf '%s' "$1" \
     | tr -d '\r' \
     | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s/[[:space:]]\+/ /g' \
     | tr '[:upper:]' '[:lower:]' \
-    | tr -d ' -_.'
+    | tr -d ' _.-'
 }
 
 # Parse URI_PREFIXES_RAW (see the MPD integration config block above) into
