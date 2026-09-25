@@ -239,6 +239,24 @@ function safeString(v) {
   return s;
 }
 
+// Some Volumio builds (confirmed: Volumio 2's CoreCommandRouter) never load
+// a plugin's own i18n/strings_*.json - only the core's own strings file -
+// so getI18nString('SMART_PLAYLISTS.xxx') throws (reading a property off
+// the undefined 'SMART_PLAYLISTS' namespace) instead of returning ''.
+// Falls back to the given (English) default in that case.
+ControllerSmartPlaylists.prototype.i18n = function (key, fallback) {
+  var self = this;
+  try {
+    var value = self.commandRouter.getI18nString('SMART_PLAYLISTS.' + key);
+    if (value) {
+      return value;
+    }
+  } catch (err) {
+    // fall through to fallback
+  }
+  return fallback;
+};
+
 ControllerSmartPlaylists.prototype.saveSettings = function (data) {
   var self = this;
   var defer = libQ.defer();
@@ -251,8 +269,8 @@ ControllerSmartPlaylists.prototype.saveSettings = function (data) {
 
     self.commandRouter.pushToastMessage(
       'success',
-      self.commandRouter.getI18nString('SMART_PLAYLISTS.PLUGIN_NAME'),
-      self.commandRouter.getI18nString('SMART_PLAYLISTS.TOAST_SETTINGS_SAVED')
+      self.i18n('PLUGIN_NAME', 'Smart Playlists'),
+      self.i18n('TOAST_SETTINGS_SAVED', 'Settings saved')
     );
     defer.resolve({});
   } catch (err) {
@@ -286,8 +304,8 @@ ControllerSmartPlaylists.prototype.saveRules = function (data) {
     .then(function () {
       self.commandRouter.pushToastMessage(
         'success',
-        self.commandRouter.getI18nString('SMART_PLAYLISTS.PLUGIN_NAME'),
-        self.commandRouter.getI18nString('SMART_PLAYLISTS.TOAST_RULES_SAVED')
+        self.i18n('PLUGIN_NAME', 'Smart Playlists'),
+        self.i18n('TOAST_RULES_SAVED', 'Rules saved')
       );
       defer.resolve({});
     })
@@ -336,8 +354,8 @@ ControllerSmartPlaylists.prototype.runNow = function () {
 
   self.commandRouter.pushToastMessage(
     'info',
-    self.commandRouter.getI18nString('SMART_PLAYLISTS.PLUGIN_NAME'),
-    self.commandRouter.getI18nString('SMART_PLAYLISTS.TOAST_RUN_STARTED')
+    self.i18n('PLUGIN_NAME', 'Smart Playlists'),
+    self.i18n('TOAST_RUN_STARTED', 'Building playlists - this can take a while on first run or after adding many files...')
   );
 
   self
@@ -348,8 +366,8 @@ ControllerSmartPlaylists.prototype.runNow = function () {
     .then(function () {
       self.commandRouter.pushToastMessage(
         'success',
-        self.commandRouter.getI18nString('SMART_PLAYLISTS.PLUGIN_NAME'),
-        self.commandRouter.getI18nString('SMART_PLAYLISTS.TOAST_RUN_SUCCESS')
+        self.i18n('PLUGIN_NAME', 'Smart Playlists'),
+        self.i18n('TOAST_RUN_SUCCESS', 'Playlists updated successfully')
       );
       defer.resolve({});
     })
@@ -357,8 +375,8 @@ ControllerSmartPlaylists.prototype.runNow = function () {
       self.logger.error('[SmartPlaylists] Run failed: ' + (err && err.stack ? err.stack : err));
       self.commandRouter.pushToastMessage(
         'error',
-        self.commandRouter.getI18nString('SMART_PLAYLISTS.PLUGIN_NAME'),
-        self.commandRouter.getI18nString('SMART_PLAYLISTS.TOAST_RUN_ERROR')
+        self.i18n('PLUGIN_NAME', 'Smart Playlists'),
+        self.i18n('TOAST_RUN_ERROR', 'Playlist generation failed - check the log')
       );
       defer.reject(new Error());
     });
