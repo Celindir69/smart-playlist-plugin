@@ -27,11 +27,11 @@
     "changelog": "0.9.0: Release Candidate"
   },
   "engines": {
-    "node": ">=14",
+    "node": ">=8.11.1",
     "volumio": ">=3"
   },
   "dependencies": {
-    "fs-extra": "^10.0.0",
+    "fs-extra": "^8.1.0",
     "kew": "^0.7.0",
     "v-conf": "^1.4.0"
   }
