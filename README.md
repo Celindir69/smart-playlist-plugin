@@ -93,6 +93,15 @@ sudo systemctl restart volumio
 The restart is not optional - Volumio doesn't pick up refreshed plugin code
 without it.
 
+### Installing on Volumio 2 / OEM devices
+
+On some Volumio 2 OEM builds (confirmed on a Musical Fidelity MX-Stream),
+`volumio plugin install` hangs forever with no error and no log output, for
+reasons unrelated to this plugin's own code. See
+[`docs/volumio2-mxstream-install.md`](docs/volumio2-mxstream-install.md) for
+what's actually happening and a working install script
+(`scripts/install-mxstream.sh`) that bypasses it.
+
 ## Installation - Standalone script
 
 1. Download `volumio-smart-playlists.sh` and copy it to your Volumio
