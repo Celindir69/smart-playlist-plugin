@@ -8,6 +8,8 @@ and days-since-added, plus custom sort order, track limits, deduplication
 both in your library), and optional various-artists matching (for pulling
 an artist's appearances on compilations into their own playlist).
 
+Developed using AI (Claude code https://claude.ai)
+
 Available two ways:
 - **As a Volumio plugin** (recommended) - a settings page in the Volumio UI
   to edit rules, set a daily schedule, and trigger a run, no SSH needed for
