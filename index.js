@@ -404,11 +404,10 @@ ControllerSmartPlaylists.prototype.executeScript = function () {
     if (error) {
       self.logger.error('[SmartPlaylists] script exited with error: ' + error);
       if (stderr) {
-        self.logger.error('[SmartPlaylists] stderr: ' + stderr);
+        self.logger.error('[SmartPlaylists] stderr (last lines): ' + String(stderr).trim().split('\n').slice(-10).join('\n'));
       }
       defer.reject(error);
     } else {
-      self.logger.info('[SmartPlaylists] run completed successfully');
       defer.resolve();
     }
   });
@@ -458,7 +457,6 @@ ControllerSmartPlaylists.prototype.checkSchedule = function () {
 
   if (currentTime === scheduleTime && self.lastRunDate !== today) {
     self.lastRunDate = today;
-    self.logger.info('[SmartPlaylists] Scheduled run starting');
     self.executeScript().fail(function (err) {
       self.logger.error('[SmartPlaylists] Scheduled run failed: ' + err);
     });

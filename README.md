@@ -48,7 +48,8 @@ across Internal Storage, a USB drive, and a NAS share on Volumio 3.
 
 ## Requirements
 
-- Volumio 3, with a reachable local MPD (standard on any correctly
+- Volumio 3 or 4 (the store build targets Volumio 4, Debian bookworm),
+  with a reachable local MPD (standard on any correctly
   installed Volumio)
 - `jq` and `mpc`. `mpc` is part of Volumio's base image - nothing to
   install. The plugin installs `jq` automatically; for the standalone
@@ -512,7 +513,7 @@ systemctl list-timers smart-playlists.timer
 
 ## How it stores playlists
 
-Volumio 3 does **not** use `.m3u` files dropped into your music folder for
+Volumio (3 and 4) does **not** use `.m3u` files dropped into your music folder for
 its native Playlist view - it reads JSON files from `/data/playlist/`
 (one file per playlist, no file extension), each holding an array of track
 objects like:
