@@ -69,6 +69,18 @@ DEBUG_LOG="$WORK_DIR/smart_playlists.debug.log"
 mkdir -p "$WORK_DIR"
 mkdir -p "$PLAYLIST_OUT_DIR"
 
+# Only one run at a time (the plugin's "Run now", its schedule, or a
+# systemd timer/cron calling this script directly): two runs at once would
+# write the same cache, manifest and playlists over each other. The lock
+# is released automatically when this process ends, however it ends.
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"$WORK_DIR/.smart_playlists.lock"
+  if ! flock -n 9; then
+    echo "Error: another Smart Playlists run is already in progress" >&2
+    exit 1
+  fi
+fi
+
 # Rudimentary log rotation: keep the debug log from growing unbounded
 # under a long-lived daily cron/systemd-timer schedule - relevant on
 # space-constrained SD-card Volumio installs. Rotate once it exceeds
@@ -836,7 +848,11 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     jq -R -s '
       split("\n") | map(select(length > 0) | split("\t")) |
       map({service: "mpd", uri: .[0], title: .[1], artist: .[2], album: .[3]})
-    ' "$playlist_tsv" > "$outfile"
+    ' "$playlist_tsv" > "$playlist_tsv.json"
+    # Only a complete result replaces the playlist: if jq fails (e.g. the
+    # disk is full) the old playlist stays as it was instead of a half
+    # JSON file. "cat >" rather than "mv", see history/cache writes above.
+    cat "$playlist_tsv.json" > "$outfile"
 
     chown volumio:volumio "$outfile" 2>/dev/null || true
 

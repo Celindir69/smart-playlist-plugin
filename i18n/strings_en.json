@@ -16,6 +16,7 @@
     "RUN_NOW": "Run now",
     "SAVE": "Save",
     "TOAST_RUN_STARTED": "Building playlists - this can take a while on first run or after adding many files...",
+    "TOAST_RUN_BUSY": "Playlists are already being built - please wait until this run has finished.",
     "TOAST_RUN_SUCCESS": "Playlists updated successfully",
     "TOAST_RUN_ERROR": "Playlist generation failed - check the log",
     "TOAST_SETTINGS_SAVED": "Settings saved",
