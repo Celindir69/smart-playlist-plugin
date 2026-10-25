@@ -126,6 +126,11 @@ music share) and **not** inside the plugin's own install folder under
 `/data/plugins/...` (so it survives an uninstall/reinstall cycle, unlike
 the plugin's regular settings).
 
+Uninstalling deletes the debug log and the metadata cache (rebuilt on the
+next run). The rules, the cleanup manifest and the generated playlists in
+`/data/playlist/` stay for a reinstall; delete `/data/smart_playlists_data/`
+by hand to remove everything.
+
 The standalone script defaults to the same location. Override it via the
 `SMART_PLAYLISTS_WORK_DIR` environment variable if you'd rather keep it
 elsewhere.
