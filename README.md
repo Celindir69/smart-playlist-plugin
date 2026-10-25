@@ -448,7 +448,8 @@ systemctl status cron
 ```
 If cron is present but not running/enabled:
 ```bash
-sudo systemctl enable --now cron
+sudo systemctl enable cron
+sudo systemctl start cron    # two steps: Volumio 2's systemd has no --now
 ```
 Only if `cron`/`crontab` is genuinely missing:
 ```bash
@@ -507,7 +508,8 @@ WantedBy=timers.target
 Enable it:
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now smart-playlists.timer
+sudo systemctl enable smart-playlists.timer
+sudo systemctl start smart-playlists.timer    # two steps: Volumio 2's systemd has no --now
 ```
 
 Check logging and next scheduled run:
