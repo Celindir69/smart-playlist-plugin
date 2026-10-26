@@ -16,6 +16,7 @@
     "RUN_NOW": "Jetzt ausführen",
     "SAVE": "Speichern",
     "TOAST_RUN_STARTED": "Playlists werden erstellt - beim ersten Lauf oder nach vielen neuen Dateien kann das eine Weile dauern...",
+    "TOAST_RUN_BUSY": "Playlists werden gerade schon erstellt - bitte warten, bis dieser Lauf fertig ist.",
     "TOAST_RUN_SUCCESS": "Playlists erfolgreich aktualisiert",
     "TOAST_RUN_ERROR": "Playlist-Erstellung fehlgeschlagen - bitte Log prüfen",
     "TOAST_SETTINGS_SAVED": "Einstellungen gespeichert",

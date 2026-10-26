@@ -48,7 +48,8 @@ across Internal Storage, a USB drive, and a NAS share on Volumio 3.
 
 ## Requirements
 
-- Volumio 3, with a reachable local MPD (standard on any correctly
+- Volumio 3 or 4 (the store build targets Volumio 4, Debian bookworm),
+  with a reachable local MPD (standard on any correctly
   installed Volumio)
 - `jq` and `mpc`. `mpc` is part of Volumio's base image - nothing to
   install. The plugin installs `jq` automatically; for the standalone
@@ -124,6 +125,11 @@ music folder (so you won't accidentally edit/delete it while browsing your
 music share) and **not** inside the plugin's own install folder under
 `/data/plugins/...` (so it survives an uninstall/reinstall cycle, unlike
 the plugin's regular settings).
+
+Uninstalling deletes the debug log and the metadata cache (rebuilt on the
+next run). The rules, the cleanup manifest and the generated playlists in
+`/data/playlist/` stay for a reinstall; delete `/data/smart_playlists_data/`
+by hand to remove everything.
 
 The standalone script defaults to the same location. Override it via the
 `SMART_PLAYLISTS_WORK_DIR` environment variable if you'd rather keep it
@@ -442,7 +448,8 @@ systemctl status cron
 ```
 If cron is present but not running/enabled:
 ```bash
-sudo systemctl enable --now cron
+sudo systemctl enable cron
+sudo systemctl start cron    # two steps: Volumio 2's systemd has no --now
 ```
 Only if `cron`/`crontab` is genuinely missing:
 ```bash
@@ -501,7 +508,8 @@ WantedBy=timers.target
 Enable it:
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now smart-playlists.timer
+sudo systemctl enable smart-playlists.timer
+sudo systemctl start smart-playlists.timer    # two steps: Volumio 2's systemd has no --now
 ```
 
 Check logging and next scheduled run:
@@ -512,7 +520,7 @@ systemctl list-timers smart-playlists.timer
 
 ## How it stores playlists
 
-Volumio 3 does **not** use `.m3u` files dropped into your music folder for
+Volumio (3 and 4) does **not** use `.m3u` files dropped into your music folder for
 its native Playlist view - it reads JSON files from `/data/playlist/`
 (one file per playlist, no file extension), each holding an array of track
 objects like:

@@ -3,7 +3,7 @@
 var libQ = require('kew');
 var fs = require('fs-extra');
 var path = require('path');
-var exec = require('child_process').exec;
+var execFile = require('child_process').execFile;
 
 // Must match the number of "rule_N" fields generated in config.json and
 // UIConfig.json (single-line inputs, since Volumio's UI schema has no
@@ -37,6 +37,7 @@ function ControllerSmartPlaylists(context) {
   self.configManager = self.context.configManager;
 
   self.scheduleTimer = null;
+  self.running = false; // a run (manual or scheduled) is in progress: no second one at the same time
   self.lastRunDate = null; // 'YYYY-MM-DD' of the last automatic run, to avoid double-firing within the same minute-check
 }
 
@@ -352,6 +353,16 @@ ControllerSmartPlaylists.prototype.runNow = function () {
   var self = this;
   var defer = libQ.defer();
 
+  if (self.running) {
+    self.commandRouter.pushToastMessage(
+      'info',
+      self.i18n('PLUGIN_NAME', 'Smart Playlists'),
+      self.i18n('TOAST_RUN_BUSY', 'Playlists are already being built - please wait until this run has finished.')
+    );
+    defer.resolve({});
+    return defer.promise;
+  }
+
   self.commandRouter.pushToastMessage(
     'info',
     self.i18n('PLUGIN_NAME', 'Smart Playlists'),
@@ -400,15 +411,20 @@ ControllerSmartPlaylists.prototype.executeScript = function () {
   // No timeout set deliberately - a first-time full library scan can take
   // a long time (~20 min for ~24k tracks in testing). Subsequent runs are
   // fast thanks to the script's own incremental cache.
-  exec('/bin/bash "' + scriptPath + '"', { env: env, maxBuffer: 1024 * 1024 * 10 }, function (error, stdout, stderr) {
+  if (self.running) {
+    defer.reject(new Error('a run is already in progress'));
+    return defer.promise;
+  }
+  self.running = true;
+  execFile('/bin/bash', [scriptPath], { env: env, maxBuffer: 1024 * 1024 * 10 }, function (error, stdout, stderr) {
+    self.running = false;
     if (error) {
       self.logger.error('[SmartPlaylists] script exited with error: ' + error);
       if (stderr) {
-        self.logger.error('[SmartPlaylists] stderr: ' + stderr);
+        self.logger.error('[SmartPlaylists] stderr (last lines): ' + String(stderr).trim().split('\n').slice(-10).join('\n'));
       }
       defer.reject(error);
     } else {
-      self.logger.info('[SmartPlaylists] run completed successfully');
       defer.resolve();
     }
   });
@@ -456,9 +472,8 @@ ControllerSmartPlaylists.prototype.checkSchedule = function () {
   var currentTime = hh + ':' + mm;
   var today = now.toISOString().slice(0, 10);
 
-  if (currentTime === scheduleTime && self.lastRunDate !== today) {
+  if (currentTime === scheduleTime && self.lastRunDate !== today && !self.running) {
     self.lastRunDate = today;
-    self.logger.info('[SmartPlaylists] Scheduled run starting');
     self.executeScript().fail(function (err) {
       self.logger.error('[SmartPlaylists] Scheduled run failed: ' + err);
     });

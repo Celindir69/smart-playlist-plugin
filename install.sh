@@ -2,6 +2,16 @@
 
 echo "Installing Smart Playlists dependencies"
 
+# A failed installation leaves nothing behind (no half-installed plugin in
+# Volumio's list).
+PLUGIN_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+fail() {
+  echo "Smart Playlists installation failed: $1"
+  case "$PLUGIN_DIR" in /data/plugins/*) rm -rf "$PLUGIN_DIR" ;; esac
+  echo "plugininstallend"
+  exit 1
+}
+
 install_deps() {
   sudo apt-get update
   sudo apt-get -y install --no-install-recommends jq
@@ -29,11 +39,10 @@ if [ -n "$MISSING" ]; then
   if [ -n "$MISSING" ]; then
     echo "==================================================================="
     echo "ERROR: still missing after retry:$MISSING"
-    echo "Smart Playlists will NOT work until this is installed. Try"
-    echo "manually once your network connection is confirmed working:"
-    echo "  sudo apt-get update"
-    echo "  sudo apt-get install -y jq"
+    echo "Smart Playlists does not work without it. Install the plugin again"
+    echo "once the network connection is working."
     echo "==================================================================="
+    fail "missing:$MISSING"
   else
     echo "OK: all dependencies present after retry"
   fi
@@ -62,7 +71,7 @@ chmod +x "$SCRIPT_DIR/smart-playlists-core.sh"
 # deliberately outside both the music folder and this plugin's own
 # install folder, so it survives a "volumio plugin uninstall" +
 # reinstall cycle (unlike this plugin's own config.json).
-sudo mkdir -p /data/smart_playlists_data
+sudo mkdir -p /data/smart_playlists_data || fail "mkdir /data/smart_playlists_data"
 sudo chown -R volumio:volumio /data/smart_playlists_data
 
 # required to end the plugin install
