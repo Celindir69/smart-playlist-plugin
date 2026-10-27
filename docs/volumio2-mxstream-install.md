@@ -127,8 +127,8 @@ git fetch origin <branch>
 git checkout <branch>
 git reset --hard "origin/<branch>"
 
-sudo cp index.js /data/plugins/user_interface/smart_playlists/index.js
-sudo chown volumio:volumio /data/plugins/user_interface/smart_playlists/index.js
+sudo cp index.js /data/plugins/miscellanea/smart_playlists/index.js
+sudo chown volumio:volumio /data/plugins/miscellanea/smart_playlists/index.js
 
 sudo systemctl restart volumio
 ```
