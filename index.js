@@ -364,7 +364,15 @@ ControllerSmartPlaylists.prototype.writeRulesFile = function () {
   }
   var content = lines.join('\n') + '\n';
 
+  // the previous rules stay as <file>.bak whenever real rules get replaced,
+  // so a wrong overwrite can always be undone
   fs.ensureDir(rulesDir)
+    .then(function () {
+      return fs.readFile(rulesPath, 'utf8').catch(function () { return ''; });
+    })
+    .then(function (old) {
+      if (old !== content && old.split('\n').some(isRuleLine)) return fs.writeFile(rulesPath + '.bak', old, 'utf8');
+    })
     .then(function () {
       return fs.writeFile(rulesPath, content, 'utf8');
     })

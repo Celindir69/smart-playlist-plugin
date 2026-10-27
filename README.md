@@ -64,9 +64,10 @@ across Internal Storage, a USB drive, and a NAS share on Volumio 3.
 > **Upgrading from 0.9.x:** up to 0.9.1 the plugin was in the category
 > `user_interface`, from 1.0.0 it is in `miscellanea`. Uninstall the old
 > version in Volumio first, otherwise both folders exist side by side.
-> From 1.0.1 on the new version takes over your settings and rules from
-> the old category on its first start; 1.0.0 did not and replaced the
-> rules with the examples.
+> From 1.0.1 on your rules file `/data/smart_playlists_data/smart_playlists.txt`
+> is kept and read back into the settings (1.0.0 replaced it with the
+> examples). Whenever real rules are replaced, the previous version stays
+> as `smart_playlists.txt.bak`.
 
 1. On your Volumio device (via SSH), set up the plugin dev workflow once:
    ```bash
