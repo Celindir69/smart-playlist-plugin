@@ -26,6 +26,19 @@ var NUM_RULE_LINES = 90;
 // survives both.
 var PLUGIN_DATA_DIR = '/data/smart_playlists_data';
 
+// Up to 0.9.x the plugin was in the category user_interface, so Volumio kept
+// its settings there. After the switch to miscellanea the new folder starts
+// with the defaults; onStart takes the old settings over once.
+var OLD_CONFIG_FILE = '/data/configuration/user_interface/smart_playlists/config.json';
+var MIGRATED_KEYS = /^(rule_\d+|rules_page\d_enabled|schedule_enabled|schedule_time)$/;
+
+// A real rule: not empty and not a comment. The default config.json only
+// holds commented examples, which must never count as the user's rules.
+function isRuleLine(line) {
+  var t = (line || '').trim();
+  return t !== '' && t.charAt(0) !== '#';
+}
+
 module.exports = ControllerSmartPlaylists;
 
 function ControllerSmartPlaylists(context) {
@@ -68,6 +81,7 @@ ControllerSmartPlaylists.prototype.onStart = function () {
   //     content, import the FILE into the config instead - the file wins,
   //     nothing gets clobbered.
   //   - if both are empty, nothing to do.
+  self.migrateOldConfig();
   self.reconcileRulesFile()
     .then(function () {
       self.setupSchedule();
@@ -82,19 +96,40 @@ ControllerSmartPlaylists.prototype.onStart = function () {
   return defer.promise;
 };
 
+ControllerSmartPlaylists.prototype.configHasRules = function () {
+  for (var i = 1; i <= NUM_RULE_LINES; i++) {
+    if (isRuleLine(this.config.get('rule_' + i))) return true;
+  }
+  return false;
+};
+
+// Settings from the old category (user_interface, up to 0.9.x): taken over
+// once while the current config has no rules of its own.
+ControllerSmartPlaylists.prototype.migrateOldConfig = function () {
+  var self = this;
+  if (self.configHasRules()) return;
+  var old;
+  try {
+    old = fs.readJsonSync(OLD_CONFIG_FILE);
+  } catch (e) {
+    return;   // no old config (fresh install) or unreadable
+  }
+  var n = 0;
+  Object.keys(old || {}).forEach(function (key) {
+    if (!MIGRATED_KEYS.test(key) || !old[key] || old[key].value === undefined) return;
+    self.config.set(key, old[key].value);
+    n++;
+  });
+  if (n) self.logger.info('[SmartPlaylists] Settings taken over from ' + OLD_CONFIG_FILE + ' (' + n + ' values).');
+};
+
 ControllerSmartPlaylists.prototype.reconcileRulesFile = function () {
   var self = this;
   var defer = libQ.defer();
 
-  var configHasContent = false;
-  for (var i = 1; i <= NUM_RULE_LINES; i++) {
-    if ((self.config.get('rule_' + i) || '').trim() !== '') {
-      configHasContent = true;
-      break;
-    }
-  }
-
-  if (configHasContent) {
+  // Only real rules count: the commented examples of a fresh config must not
+  // overwrite a rules file that already exists (e.g. after a reinstall).
+  if (self.configHasRules()) {
     // Config is the source of truth - write it out, as before.
     // IMPORTANT: pass closures, not bare "defer.resolve"/"defer.reject"
     // references - with kew, passing the deferred's methods detached
@@ -117,9 +152,7 @@ ControllerSmartPlaylists.prototype.reconcileRulesFile = function () {
   fs.readFile(rulesPath, 'utf8')
     .then(function (fileContent) {
       var lines = fileContent.split('\n');
-      var hasRealContent = lines.some(function (l) {
-        return l.trim() !== '';
-      });
+      var hasRealContent = lines.some(isRuleLine);
       if (!hasRealContent) {
         // Both empty, nothing to reconcile.
         defer.resolve();
