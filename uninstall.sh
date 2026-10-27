@@ -12,7 +12,7 @@ echo "Uninstalling Smart Playlists"
 # /data/smart_playlists_data here.
 
 # Only the debug log, the library cache (rebuilt on the next run) and the
-# run lock go. The rules file and the manifest (which playlists this plugin
+# run lock go. The rules file (and its .bak) and the manifest (which playlists this plugin
 # created, so they can be cleaned up after a reinstall) stay.
 D="${SMART_PLAYLISTS_WORK_DIR:-/data/smart_playlists_data}"   # SMART_PLAYLISTS_WORK_DIR: tests only
 if [ -d "$D" ]; then
