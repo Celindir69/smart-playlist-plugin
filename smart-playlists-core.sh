@@ -886,7 +886,14 @@ fi
 # rewrite happens unconditionally below.
 failed_removals=()
 
-if [[ -f "$MANIFEST_FILE" ]]; then
+# A rules file without a single real rule (only comments or empty, e.g. the
+# examples after a botched update) never wipes the existing playlists.
+has_rules=0
+grep -qvE '^[[:space:]]*(#|$)' "$INPUT_FILE" && has_rules=1
+
+if (( has_rules == 0 )) && [[ -s "$MANIFEST_FILE" ]]; then
+  log "No rules in $INPUT_FILE - keeping the playlists from the previous run"
+elif [[ -f "$MANIFEST_FILE" ]]; then
   while IFS= read -r old_name; do
     [[ -z "$old_name" ]] && continue
     if [[ -z "${new_manifest_set[$old_name]:-}" ]]; then
@@ -912,16 +919,18 @@ if [[ -f "$MANIFEST_FILE" ]]; then
   done < "$MANIFEST_FILE"
 fi
 
-: > "$MANIFEST_FILE"
-if (( ${#current_names[@]} > 0 )); then
-  for n in "${current_names[@]}"; do
-    printf '%s\n' "$n" >> "$MANIFEST_FILE"
-  done
-fi
-if (( ${#failed_removals[@]} > 0 )); then
-  for n in "${failed_removals[@]}"; do
-    printf '%s\n' "$n" >> "$MANIFEST_FILE"
-  done
+if (( has_rules == 1 )) || [[ ! -s "$MANIFEST_FILE" ]]; then   # without rules the manifest stays as it is
+  : > "$MANIFEST_FILE"
+  if (( ${#current_names[@]} > 0 )); then
+    for n in "${current_names[@]}"; do
+      printf '%s\n' "$n" >> "$MANIFEST_FILE"
+    done
+  fi
+  if (( ${#failed_removals[@]} > 0 )); then
+    for n in "${failed_removals[@]}"; do
+      printf '%s\n' "$n" >> "$MANIFEST_FILE"
+    done
+  fi
 fi
 
 log "Done"
