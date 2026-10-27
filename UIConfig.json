@@ -10,7 +10,7 @@
       "icon": "fa-clock-o",
       "onSave": {
         "type": "controller",
-        "endpoint": "user_interface/smart_playlists",
+        "endpoint": "miscellanea/smart_playlists",
         "method": "saveSettings"
       },
       "saveButton": {
@@ -56,7 +56,7 @@
       "description": "TRANSLATE.SMART_PLAYLISTS.RULES_SECTION_DOC",
       "onSave": {
         "type": "controller",
-        "endpoint": "user_interface/smart_playlists",
+        "endpoint": "miscellanea/smart_playlists",
         "method": "saveRules"
       },
       "saveButton": {
@@ -1630,7 +1630,7 @@
           "label": "TRANSLATE.SMART_PLAYLISTS.RUN_NOW",
           "onClick": {
             "type": "controller",
-            "endpoint": "user_interface/smart_playlists",
+            "endpoint": "miscellanea/smart_playlists",
             "method": "runNow"
           }
         }

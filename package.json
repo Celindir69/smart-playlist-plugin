@@ -1,6 +1,6 @@
 {
   "name": "smart_playlists",
-  "version": "0.9.1",
+  "version": "1.0.0",
   "description": "Rule-based playlist generator: builds native Volumio playlists from artist/album/genre/year/track/duration/added-date filters, with sorting and deduplication.",
   "main": "index.js",
   "scripts": {},
@@ -10,7 +10,7 @@
   "volumio_info": {
     "prettyName": "Smart Playlists",
     "icon": "fa-list-ol",
-    "plugin_type": "user_interface",
+    "plugin_type": "miscellanea",
     "architectures": [
       "amd64",
       "armhf"
@@ -20,7 +20,7 @@
     ],
     "has_alsa_contribution": false,
     "details": "Generate native Volumio playlists automatically from a rules text file: artist lists with AND/OR filters on album, genre, year, title, track, duration, and days-since-added, plus custom sort order and track limits.",
-    "changelog": "0.9.1: for Volumio 4 (bookworm), cleanup after a failed installation."
+    "changelog": "1.0.0: first store version; category Miscellanea, jq only installed when missing."
   },
   "engines": {
     "node": ">=20",

@@ -61,11 +61,17 @@ across Internal Storage, a USB drive, and a NAS share on Volumio 3.
 
 ## Installation - Plugin (recommended)
 
+> **Upgrading from 0.9.x:** up to 0.9.1 the plugin was in the category
+> `user_interface`, from 1.0.0 it is in `miscellanea`. Uninstall the old
+> version in Volumio first (your rules and playlists in
+> `/data/smart_playlists_data` and `/data/playlist` stay), otherwise both
+> folders exist side by side.
+
 1. On your Volumio device (via SSH), set up the plugin dev workflow once:
    ```bash
    volumio plugin init
    ```
-   Category: `user_interface`. Name: `smart_playlists` (if you pick a
+   Category: `miscellanea`. Name: `smart_playlists` (if you pick a
    different name, you'll need to update the `endpoint` values in
    `UIConfig.json` and the `plugin_type`/name in `package.json` to match).
 2. Copy all the plugin files (`index.js`, `UIConfig.json`, `config.json`,
@@ -602,4 +608,4 @@ effort. Your existing rules just need to be copied into the new
 
 ## License
 
-Do whatever you want with it.
+MIT, see [LICENSE](LICENSE).

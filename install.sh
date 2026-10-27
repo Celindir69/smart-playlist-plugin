@@ -12,7 +12,9 @@ fail() {
   exit 1
 }
 
+# jq is not part of Volumio's base image; install it only when it is missing
 install_deps() {
+  command -v jq >/dev/null 2>&1 && return 0
   sudo apt-get update
   sudo apt-get -y install --no-install-recommends jq
 }
