@@ -4,6 +4,7 @@ var libQ = require('kew');
 var fs = require('fs-extra');
 var path = require('path');
 var execFile = require('child_process').execFile;
+var os = require('os');
 
 // Must match the number of "rule_N" fields generated in config.json and
 // UIConfig.json (single-line inputs, since Volumio's UI schema has no
@@ -24,12 +25,32 @@ var NUM_RULE_LINES = 90;
 // for every update, rather than "volumio plugin refresh", is a common
 // dev workflow). This path is untouched by either of those, so it
 // survives both.
-var PLUGIN_DATA_DIR = '/data/smart_playlists_data';
+// TEST_ROOT only for test/rest-api.js, which must not touch a real /data.
+var TEST_ROOT = process.env.SMART_PLAYLISTS_TEST_ROOT || '';
+var PLUGIN_DATA_DIR = TEST_ROOT + '/data/smart_playlists_data';
 
 // Up to 0.9.x the plugin was in the category user_interface, so Volumio kept
 // its settings there. After the switch to miscellanea the new folder starts
 // with the defaults; onStart takes the old settings over once.
 var OLD_CONFIG_FILE = '/data/configuration/user_interface/smart_playlists/config.json';
+// Volumio's playlist folder and the core script's list of the playlists it
+// created (see smart-playlists-core.sh).
+var PLAYLIST_DIR = TEST_ROOT + '/data/playlist';
+var MANIFEST_NAME = '.smart_playlists_manifest.tsv';
+
+// REST endpoint for other frontends such as Xplorio
+// (POST /api/v1/pluginEndpoint with {"endpoint": "smart_playlists", "data": {...}}),
+// see restApi() below.
+var REST_ENDPOINT = {
+  endpoint: 'smart_playlists',
+  type: 'miscellanea',
+  name: 'smart_playlists',
+  method: 'restApi'
+};
+var API_VERSION = 1;
+var MAX_RULE_LENGTH = 2000;
+var PREVIEW_TIMEOUT_MS = 180 * 1000;
+
 var MIGRATED_KEYS = /^(rule_\d+|rules_page\d_enabled|schedule_enabled|schedule_time)$/;
 
 // A real rule: not empty and not a comment. The default config.json only
@@ -51,6 +72,9 @@ function ControllerSmartPlaylists(context) {
 
   self.scheduleTimer = null;
   self.running = false; // a run (manual or scheduled) is in progress: no second one at the same time
+  self.lastRun = null;   // {at, ok} of the last finished run, for the REST status
+  self.rerunWanted = false;   // rules changed over REST during a run: run once more afterwards
+  self.previewing = false;
   self.lastRunDate = null; // 'YYYY-MM-DD' of the last automatic run, to avoid double-firing within the same minute-check
 }
 
@@ -82,6 +106,9 @@ ControllerSmartPlaylists.prototype.onStart = function () {
   //     nothing gets clobbered.
   //   - if both are empty, nothing to do.
   self.migrateOldConfig();
+  if (typeof self.commandRouter.addPluginRestEndpoint === 'function') {
+    self.commandRouter.addPluginRestEndpoint(REST_ENDPOINT);
+  }
   self.reconcileRulesFile()
     .then(function () {
       self.setupSchedule();
@@ -184,6 +211,9 @@ ControllerSmartPlaylists.prototype.onStop = function () {
   if (self.scheduleTimer) {
     clearInterval(self.scheduleTimer);
     self.scheduleTimer = null;
+  }
+  if (typeof self.commandRouter.removePluginRestEndpoint === 'function') {
+    self.commandRouter.removePluginRestEndpoint(REST_ENDPOINT);
   }
   return libQ.resolve();
 };
@@ -459,6 +489,15 @@ ControllerSmartPlaylists.prototype.executeScript = function () {
   self.running = true;
   execFile('/bin/bash', [scriptPath], { env: env, maxBuffer: 1024 * 1024 * 10 }, function (error, stdout, stderr) {
     self.running = false;
+    self.lastRun = { at: Date.now(), ok: !error };
+    if (self.rerunWanted) {
+      self.rerunWanted = false;
+      setTimeout(function () {
+        self.executeScript().fail(function (err) {
+          self.logger.error('[SmartPlaylists] Follow-up run failed: ' + err);
+        });
+      }, 0);
+    }
     if (error) {
       self.logger.error('[SmartPlaylists] script exited with error: ' + error);
       if (stderr) {
@@ -471,6 +510,265 @@ ControllerSmartPlaylists.prototype.executeScript = function () {
   });
 
   return defer.promise;
+};
+
+// -----------------------------------------------------------------------
+// REST API for other frontends (Xplorio's playlist editor)
+// -----------------------------------------------------------------------
+//
+// data.action:
+//   'list'     -> {ok, api, max, running, lastRun, rules: [{slot, line, name, playlist, created}]}
+//   'save'     {slot (0 or missing = first free line), line, run (default true)}
+//              -> {ok, slot, playlist}; the line must carry a name ("Name::...")
+//   'delete'   {slot} -> {ok}; also removes the generated playlist
+//   'run'      -> {ok, running}; during a run, one more run follows it
+//   'status'   -> {ok, running, lastRun}
+//   'preview'  {line} -> {ok, count, tracks: [{title, artist, album}] (first 10)}
+// Errors: {ok: false, error: 'bad_action' | 'bad_line' | 'no_name' | 'name_taken'
+//          | 'full' | 'bad_slot' | 'busy' | 'failed'}
+// Always resolves, so the caller gets the answer instead of an HTTP error.
+
+// Same as sanitize_name in smart-playlists-core.sh: the file name, and so
+// the name Volumio shows, of the playlist a rule line creates.
+function sanitizeName(name) {
+  var out = String(name)
+    .replace(/[\/:"\\?*]/g, '_')
+    .replace(/[\x00-\x1f]/g, '')
+    .replace(/^ +| +$/g, '')
+    .replace(/ {2,}/g, ' ');
+  if (out === '' || out === '.' || out === '..') return 'unnamed';
+  if (out.charAt(0) === '.') return '_' + out;
+  return out;
+}
+
+// The playlist name a rule line results in (as the core script derives it).
+function playlistOf(line) {
+  line = String(line).replace(/\r$/, '');
+  var i = line.indexOf('::');
+  if (i >= 0) return sanitizeName(line.slice(0, i).trim());
+  return sanitizeName(line.replace(/;/g, ', '));
+}
+
+// Own name of a rule line ("Name::..."), '' without one.
+function ruleName(line) {
+  var i = String(line).indexOf('::');
+  return i >= 0 ? String(line).slice(0, i).trim() : '';
+}
+
+// Checks a rule line coming in over REST; returns an error code or ''.
+function checkLine(line) {
+  if (typeof line !== 'string') return 'bad_line';
+  if (/[\r\n]/.test(line) || line.length > MAX_RULE_LENGTH || !isRuleLine(line)) return 'bad_line';
+  if (!ruleName(line)) return 'no_name';
+  var rest = line.slice(line.indexOf('::') + 2).trim();
+  if (!rest || rest.charAt(0) === '|') return 'bad_line';   // no artist list and no "*"
+  return '';
+}
+
+ControllerSmartPlaylists.prototype.restApi = function (data) {
+  var self = this;
+  data = data || {};
+  var answer;
+  try {
+    switch (data.action || 'list') {
+      case 'list': answer = self.apiList(); break;
+      case 'status': answer = libQ.resolve(self.apiStatus()); break;
+      case 'save': answer = self.apiSave(data); break;
+      case 'delete': answer = self.apiDelete(data); break;
+      case 'run': answer = libQ.resolve(self.apiRun()); break;
+      case 'preview': answer = self.apiPreview(data); break;
+      default: answer = libQ.resolve({ ok: false, error: 'bad_action' });
+    }
+  } catch (err) {
+    self.logger.error('[SmartPlaylists] REST ' + data.action + ' failed: ' + (err && err.stack ? err.stack : err));
+    answer = libQ.resolve({ ok: false, error: 'failed' });
+  }
+  return answer.fail(function (err) {
+    self.logger.error('[SmartPlaylists] REST ' + data.action + ' failed: ' + (err && err.stack ? err.stack : err));
+    return { ok: false, error: 'failed' };
+  });
+};
+
+ControllerSmartPlaylists.prototype.apiStatus = function () {
+  return { ok: true, api: API_VERSION, running: !!this.running, lastRun: this.lastRun };
+};
+
+// Names of the playlists the core script created (its manifest).
+ControllerSmartPlaylists.prototype.readManifest = function () {
+  var defer = libQ.defer();
+  fs.readFile(path.join(PLUGIN_DATA_DIR, MANIFEST_NAME), 'utf8')
+    .then(function (text) {
+      defer.resolve(text.split('\n').filter(function (n) { return n !== ''; }));
+    })
+    .catch(function () { defer.resolve([]); });
+  return defer.promise;
+};
+
+ControllerSmartPlaylists.prototype.apiList = function () {
+  var self = this;
+  return self.readManifest().then(function (made) {
+    var rules = [];
+    for (var i = 1; i <= NUM_RULE_LINES; i++) {
+      var line = safeString(self.config.get('rule_' + i));
+      if (!isRuleLine(line)) continue;
+      var pl = playlistOf(line.trim());
+      rules.push({ slot: i, line: line.trim(), name: ruleName(line), playlist: pl, created: made.indexOf(pl) >= 0 });
+    }
+    var st = self.apiStatus();
+    st.max = NUM_RULE_LINES;
+    st.rules = rules;
+    return st;
+  });
+};
+
+// Writes the rule lines to the config and the rules file, and shows the
+// page of every used line on the settings page.
+ControllerSmartPlaylists.prototype.storeRule = function (slot, line) {
+  var self = this;
+  self.config.set('rule_' + slot, line);
+  if (line) self.config.set('rules_page' + Math.ceil(slot / 30) + '_enabled', true);
+  return self.writeRulesFile();
+};
+
+ControllerSmartPlaylists.prototype.apiSave = function (data) {
+  var self = this;
+  var line = typeof data.line === 'string' ? data.line.trim() : data.line;
+  var bad = checkLine(line);
+  if (bad) return libQ.resolve({ ok: false, error: bad });
+
+  var slot = parseInt(data.slot, 10) || 0;
+  if (slot < 0 || slot > NUM_RULE_LINES) return libQ.resolve({ ok: false, error: 'bad_slot' });
+
+  var pl = playlistOf(line);
+  var free = 0;
+  for (var i = 1; i <= NUM_RULE_LINES; i++) {
+    var other = safeString(self.config.get('rule_' + i));
+    if (!isRuleLine(other)) {
+      if (!free && !other.trim()) free = i;   // a comment line is never overwritten
+      continue;
+    }
+    if (i !== slot && playlistOf(other.trim()) === pl) return libQ.resolve({ ok: false, error: 'name_taken' });
+  }
+  if (!slot) slot = free;
+  if (!slot) return libQ.resolve({ ok: false, error: 'full' });
+
+  return self.storeRule(slot, line).then(function () {
+    if (data.run !== false) self.apiRun();
+    return { ok: true, slot: slot, playlist: pl };
+  });
+};
+
+ControllerSmartPlaylists.prototype.apiDelete = function (data) {
+  var self = this;
+  var slot = parseInt(data.slot, 10) || 0;
+  if (slot < 1 || slot > NUM_RULE_LINES) return libQ.resolve({ ok: false, error: 'bad_slot' });
+  var line = safeString(self.config.get('rule_' + slot));
+  if (!isRuleLine(line)) return libQ.resolve({ ok: false, error: 'bad_slot' });
+  var pl = playlistOf(line.trim());
+
+  return self.storeRule(slot, '')
+    .then(function () { return self.readManifest(); })
+    .then(function (made) {
+      // Removed right away: the core script keeps all playlists when the
+      // last rule is gone, and nobody should wait for a run to see it go.
+      // Only a playlist the plugin created itself is touched.
+      if (made.indexOf(pl) < 0) return;
+      var still = false;
+      for (var i = 1; i <= NUM_RULE_LINES; i++) {
+        var other = safeString(self.config.get('rule_' + i));
+        if (isRuleLine(other) && playlistOf(other.trim()) === pl) still = true;
+      }
+      if (still) return;
+      var rest = made.filter(function (n) { return n !== pl; });
+      return fs.remove(path.join(PLAYLIST_DIR, pl))
+        .then(function () {
+          return fs.writeFile(path.join(PLUGIN_DATA_DIR, MANIFEST_NAME), rest.length ? rest.join('\n') + '\n' : '', 'utf8');
+        });
+    })
+    .then(function () {
+      if (self.configHasRules()) self.apiRun();
+      return { ok: true };
+    });
+};
+
+ControllerSmartPlaylists.prototype.apiRun = function () {
+  var self = this;
+  if (self.running) {
+    self.rerunWanted = true;
+  } else {
+    self.reconcileRulesFile()
+      .then(function () { return self.executeScript(); })
+      .fail(function (err) {
+        self.logger.error('[SmartPlaylists] Run over REST failed: ' + err);
+      });
+  }
+  return { ok: true, running: true };
+};
+
+// Runs the core script on this one line alone, in a folder of its own, so
+// neither the real playlists nor the manifest are touched.
+ControllerSmartPlaylists.prototype.apiPreview = function (data) {
+  var self = this;
+  var line = typeof data.line === 'string' ? data.line.trim() : data.line;
+  var bad = checkLine(line);
+  if (bad === 'no_name') {
+    line = 'Preview::' + line;
+    bad = checkLine(line);
+  }
+  if (bad) return libQ.resolve({ ok: false, error: bad });
+  if (self.previewing) return libQ.resolve({ ok: false, error: 'busy' });
+  self.previewing = true;
+
+  var defer = libQ.defer();
+  var dir = '';
+  var done = function (answer) {
+    self.previewing = false;
+    if (dir) fs.remove(dir).catch(function () {});
+    defer.resolve(answer);
+  };
+
+  fs.mkdtemp(path.join(os.tmpdir(), 'smart-playlists-preview-'))
+    .then(function (d) {
+      dir = d;
+      return fs.writeFile(path.join(dir, 'smart_playlists.txt'), line + '\n', 'utf8');
+    })
+    .then(function () {
+      var env = Object.assign({}, process.env, {
+        SMART_PLAYLISTS_WORK_DIR: dir,
+        SMART_PLAYLISTS_OUT_DIR: path.join(dir, 'out')
+      });
+      execFile('/bin/bash', [self.getCoreScriptPath()], { env: env, timeout: PREVIEW_TIMEOUT_MS, maxBuffer: 1024 * 1024 * 10 }, function (error) {
+        if (error) {
+          self.logger.error('[SmartPlaylists] Preview failed: ' + error);
+          return done({ ok: false, error: 'failed' });
+        }
+        fs.readJson(path.join(dir, 'out', playlistOf(line)))
+          .then(function (list) {
+            list = Array.isArray(list) ? list : [];
+            done({
+              ok: true,
+              count: list.length,
+              tracks: list.slice(0, 10).map(function (t) {
+                return { title: t.title || '', artist: t.artist || '', album: t.album || '' };
+              })
+            });
+          })
+          .catch(function () { done({ ok: true, count: 0, tracks: [] }); });   // no match: no file
+      });
+    })
+    .catch(function (err) {
+      self.logger.error('[SmartPlaylists] Preview failed: ' + err);
+      done({ ok: false, error: 'failed' });
+    });
+
+  return defer.promise;
+};
+
+ControllerSmartPlaylists.helpers = {
+  sanitizeName: sanitizeName,
+  playlistOf: playlistOf,
+  ruleName: ruleName,
+  checkLine: checkLine
 };
 
 // -----------------------------------------------------------------------
