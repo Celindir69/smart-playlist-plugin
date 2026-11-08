@@ -64,10 +64,18 @@ across Internal Storage, a USB drive, and a NAS share on Volumio 3.
 > **Upgrading from 0.9.x:** up to 0.9.1 the plugin was in the category
 > `user_interface`, from 1.0.0 it is in `miscellanea`. Uninstall the old
 > version in Volumio first, otherwise both folders exist side by side.
-> From 1.0.1 on your rules file `/data/smart_playlists_data/smart_playlists.txt`
-> is kept and read back into the settings (1.0.0 replaced it with the
-> examples). Whenever real rules are replaced, the previous version stays
-> as `smart_playlists.txt.bak`.
+> **Copy your rules first** (e.g.
+> `cp /data/smart_playlists_data/smart_playlists.txt ~/smart_playlists-backup.txt`):
+> uninstalling deletes the plugin's settings, and if the rules file only
+> holds the examples (1.0.0 could write them over it), the old version's
+> settings were the only copy. After installing, copy the backup back to
+> `/data/smart_playlists_data/smart_playlists.txt` and restart Volumio; the
+> plugin reads it into its settings.
+>
+> From 1.2.0 on this cannot happen again: every version of your rules is
+> kept in `/data/smart_playlists_data/history/` (see "Where the plugin
+> stores its data"), and the plugin takes the newest one back by itself
+> when both its settings and the rules file have lost them.
 
 1. On your Volumio device (via SSH), set up the plugin dev workflow once:
    ```bash
@@ -138,6 +146,22 @@ Uninstalling deletes the debug log and the metadata cache (rebuilt on the
 next run). The rules, the cleanup manifest and the generated playlists in
 `/data/playlist/` stay for a reinstall; delete `/data/smart_playlists_data/`
 by hand to remove everything.
+
+**Rules history.** Every time the rules change, the new version is also
+kept as `history/rules-<date>-<time>.txt` (the newest 20). If the plugin
+starts with no rules in its settings and none in `smart_playlists.txt`
+(for example after an uninstall, which deletes the settings, or an update
+across categories), it takes the newest version from the history, or else
+`smart_playlists.txt.bak`, back into its settings and logs where it came
+from. Emptying all rules on purpose (saving with no rule left) leaves a
+`history/cleared` marker, so they are not brought back then; the history
+stays. To go back to an older version by hand, copy its lines into the
+settings page (or, while the settings have no rules, copy the file to
+`smart_playlists.txt` and restart Volumio):
+```bash
+ls /data/smart_playlists_data/history/
+cat /data/smart_playlists_data/history/rules-20261108-120000.txt
+```
 
 The standalone script defaults to the same location. Override it via the
 `SMART_PLAYLISTS_WORK_DIR` environment variable if you'd rather keep it
@@ -631,8 +655,8 @@ A line saved over this API must have its own name (`Name::...`), so a
 frontend can find its playlist again. `playlist` is the name Volumio shows
 for the playlist a line creates.
 
-Tests: `node test/rest-api.js` (needs `npm install` once, uses a stand-in
-for `mpc`, touches no real `/data`).
+Tests: `node test/rest-api.js` and `node test/rules-history.js` (need
+`npm install` once, use a stand-in for `mpc`, touch no real `/data`).
 
 ## License
 
