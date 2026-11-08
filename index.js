@@ -37,6 +37,9 @@ var OLD_CONFIG_FILE = '/data/configuration/user_interface/smart_playlists/config
 // created (see smart-playlists-core.sh).
 var PLAYLIST_DIR = TEST_ROOT + '/data/playlist';
 var MANIFEST_NAME = '.smart_playlists_manifest.tsv';
+var HISTORY_DIR = PLUGIN_DATA_DIR + '/history';
+var HISTORY_KEEP = 20;
+var CLEARED_MARK = 'cleared';   // in HISTORY_DIR: the user emptied all rules on purpose
 
 // REST endpoint for other frontends such as Xplorio
 // (POST /api/v1/pluginEndpoint with {"endpoint": "smart_playlists", "data": {...}}),
@@ -176,33 +179,129 @@ ControllerSmartPlaylists.prototype.reconcileRulesFile = function () {
   // doing anything. If it does, import it INTO the config rather than
   // overwriting the file with the empty config.
   var rulesPath = self.getRulesFilePath();
+  var importLines = function (lines, from) {
+    self.logger.info('[SmartPlaylists] Config was empty but ' + from + ' has rules - importing them into the config instead of overwriting them.');
+    for (var i = 1; i <= NUM_RULE_LINES; i++) {
+      self.config.set('rule_' + i, lines[i - 1] !== undefined ? lines[i - 1] : '');
+    }
+    if (lines.length > NUM_RULE_LINES) {
+      self.logger.error(
+        '[SmartPlaylists] Rules file has ' + lines.length + ' lines but only the first ' +
+        NUM_RULE_LINES + ' fit in the UI - extra lines were left untouched in the file but ' +
+        'will NOT be editable/visible in the UI. Consider raising NUM_RULE_LINES.'
+      );
+    }
+  };
   fs.readFile(rulesPath, 'utf8')
+    .catch(function () { return ''; })   // file doesn't exist yet (fresh install)
     .then(function (fileContent) {
       var lines = fileContent.split('\n');
-      var hasRealContent = lines.some(isRuleLine);
-      if (!hasRealContent) {
-        // Both empty, nothing to reconcile.
-        defer.resolve();
-        return;
+      if (lines.some(isRuleLine)) {
+        importLines(lines, rulesPath);
+        return self.saveHistory(fileContent);
       }
-      self.logger.info('[SmartPlaylists] Config was empty but rules file has content - importing file into config instead of overwriting it.');
-      for (var i = 1; i <= NUM_RULE_LINES; i++) {
-        self.config.set('rule_' + i, lines[i - 1] !== undefined ? lines[i - 1] : '');
-      }
-      if (lines.length > NUM_RULE_LINES) {
-        self.logger.error(
-          '[SmartPlaylists] Rules file has ' + lines.length + ' lines but only the first ' +
-          NUM_RULE_LINES + ' fit in the UI - extra lines were left untouched in the file but ' +
-          'will NOT be editable/visible in the UI. Consider raising NUM_RULE_LINES.'
-        );
-      }
+      // Neither config nor file has rules (e.g. the old version's settings
+      // were deleted with it and the file only holds the examples): take the
+      // newest saved version back, unless the rules were emptied on purpose.
+      return self.findSavedRules().then(function (saved) {
+        if (!saved) return;
+        importLines(saved.content.split('\n'), saved.path);
+        return self.writeRulesFile();
+      });
+    })
+    .then(function () {
       defer.resolve();
     })
-    .catch(function () {
-      // File doesn't exist yet (fresh install) - nothing to import, nothing to write.
-      defer.resolve();
+    .catch(function (err) {
+      defer.reject(err);
     });
 
+  return defer.promise;
+};
+
+// -----------------------------------------------------------------------
+// Rules history: every version with real rules is kept in
+// /data/smart_playlists_data/history/ (newest HISTORY_KEEP files), so rules
+// survive anything that empties both the settings and the rules file:
+// an uninstall (Volumio deletes the plugin's settings), an update across
+// categories, or a wrong save. Emptying all rules on purpose leaves a
+// marker file, so they are not brought back against the user's will.
+// -----------------------------------------------------------------------
+
+function stamp(d) {
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+  return d.getFullYear() + two(d.getMonth() + 1) + two(d.getDate()) + '-' + two(d.getHours()) + two(d.getMinutes()) + two(d.getSeconds());
+}
+
+// History file names in age order: rules-<stamp>.txt, then rules-<stamp>-1.txt, -2 … (same second)
+var HISTORY_NAME = /^rules-(\d{8}-\d{6})(?:-(\d+))?\.txt$/;
+function historyFiles(names) {
+  return names.filter(function (n) { return HISTORY_NAME.test(n); }).sort(function (a, b) {
+    var x = HISTORY_NAME.exec(a), y = HISTORY_NAME.exec(b);
+    return x[1] < y[1] ? -1 : x[1] > y[1] ? 1 : (+(x[2] || 0)) - (+(y[2] || 0));
+  });
+}
+
+// Stores this content as a new history version if it has real rules and
+// differs from the newest one; otherwise only notes that the rules were
+// emptied on purpose.
+ControllerSmartPlaylists.prototype.saveHistory = function (content) {
+  var dir = HISTORY_DIR;
+  var cleared = path.join(dir, CLEARED_MARK);
+  if (!content.split('\n').some(isRuleLine)) {
+    return fs.ensureDir(dir).then(function () { return fs.writeFile(cleared, stamp(new Date()) + '\n', 'utf8'); });
+  }
+  return fs.ensureDir(dir)
+    .then(function () { return fs.remove(cleared); })
+    .then(function () { return fs.readdir(dir); })
+    .then(function (names) {
+      var files = historyFiles(names);
+      var newest = files.length ? files[files.length - 1] : '';
+      return (newest ? fs.readFile(path.join(dir, newest), 'utf8') : Promise.resolve(''))
+        .then(function (last) {
+          if (last === content) return;
+          // within the same second: one more than the highest number so far,
+          // so the order stays right even after older ones were pruned
+          var st = stamp(new Date()), n = -1;
+          files.forEach(function (f) {
+            var m = HISTORY_NAME.exec(f);
+            if (m[1] === st) n = Math.max(n, +(m[2] || 0));
+          });
+          n++;
+          files.push('rules-' + st + (n ? '-' + n : '') + '.txt');
+          return fs.writeFile(path.join(dir, files[files.length - 1]), content, 'utf8').then(function () {
+            return Promise.all(files.slice(0, Math.max(0, files.length - HISTORY_KEEP)).map(function (old) {
+              return fs.remove(path.join(dir, old));
+            }));
+          });
+        });
+    });
+};
+
+// The newest saved rules: history first, then the .bak of the rules file.
+// Nothing while the rules were emptied on purpose. -> {path, content} or null
+ControllerSmartPlaylists.prototype.findSavedRules = function () {
+  var self = this;
+  var dir = HISTORY_DIR;
+  var defer = libQ.defer();
+  fs.pathExists(path.join(dir, CLEARED_MARK))
+    .then(function (cleared) {
+      if (cleared) return null;
+      return fs.readdir(dir).catch(function () { return []; }).then(function (names) {
+        var candidates = historyFiles(names).reverse()
+          .map(function (n) { return path.join(dir, n); });
+        candidates.push(self.getRulesFilePath() + '.bak');
+        var next = function (i) {
+          if (i >= candidates.length) return null;
+          return fs.readFile(candidates[i], 'utf8').catch(function () { return ''; }).then(function (text) {
+            return text.split('\n').some(isRuleLine) ? { path: candidates[i], content: text } : next(i + 1);
+          });
+        };
+        return next(0);
+      });
+    })
+    .then(function (found) { defer.resolve(found); })
+    .catch(function () { defer.resolve(null); });
   return defer.promise;
 };
 
@@ -405,6 +504,11 @@ ControllerSmartPlaylists.prototype.writeRulesFile = function () {
     })
     .then(function () {
       return fs.writeFile(rulesPath, content, 'utf8');
+    })
+    .then(function () {
+      return self.saveHistory(content).catch(function (err) {
+        self.logger.error('[SmartPlaylists] Could not save the rules history: ' + err);   // the rules themselves are written
+      });
     })
     .then(function () {
       defer.resolve();
