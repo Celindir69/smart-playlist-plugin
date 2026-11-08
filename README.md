@@ -608,6 +608,32 @@ effort. Your existing rules just need to be copied into the new
   is read" above) - without that change, `comment` will just always be
   empty.
 
+## REST API for other frontends
+
+The plugin answers `POST /api/v1/pluginEndpoint` with
+`{"endpoint": "smart_playlists", "data": {"action": ...}}`. Xplorio uses
+this for its playlist editor; any other frontend can do the same. The
+rules stay in the plugin's settings (the same lines as on its settings
+page), so both ways of editing always show the same rules.
+
+| action | data | answer |
+|---|---|---|
+| `list` | | `rules: [{slot, line, name, playlist, created}]`, `max`, `running`, `lastRun` |
+| `save` | `line`, `slot` (missing or 0 = first empty line), `run` (default true) | `slot`, `playlist` |
+| `delete` | `slot` | removes the rule and the playlist it created |
+| `run` | | starts a run; during a run, one more run follows it |
+| `status` | | `running`, `lastRun` (`{at, ok}`) |
+| `preview` | `line` | `count`, `tracks` (first 10) - a run of this one line in a temporary folder, the real playlists stay untouched |
+
+Every answer has `ok`; on `ok: false`, `error` is one of `bad_action`,
+`bad_line`, `no_name`, `name_taken`, `full`, `bad_slot`, `busy`, `failed`.
+A line saved over this API must have its own name (`Name::...`), so a
+frontend can find its playlist again. `playlist` is the name Volumio shows
+for the playlist a line creates.
+
+Tests: `node test/rest-api.js` (needs `npm install` once, uses a stand-in
+for `mpc`, touches no real `/data`).
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
