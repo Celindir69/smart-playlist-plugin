@@ -102,6 +102,34 @@ if [[ "${DEBUG:-0}" == "1" ]]; then
   set -x
 fi
 
+
+# sort=mix: rule-based random order of a track file (tab separated,
+# 3=album 4=artist). 1) shuffle; 2) per artist the albums take turns
+# (n-th track of each album before the (n+1)-th of any); 3) artists
+# take turns: the i-th track of each artist lands in round i, in random
+# order within the round; 4) never the same artist twice in a row while
+# another one is left. Artist and album compare case-insensitively.
+mix_order() {
+  shuf "$1" \
+    | awk -F'\t' -v OFS='\t' '{ a = tolower($4); n = alb[a SUBSEP tolower($3)]++; print a, n, $0 }' \
+    | sort -t $'\t' -s -k1,1 -k2,2n \
+    | awk -F'\t' -v OFS='\t' -v seed="$RANDOM$$" 'BEGIN { srand(seed) }
+        { i = seen[$1]++; line = $0; sub(/^[^\t]*\t[^\t]*\t/, "", line); printf "%.6f\t%s\t%s\n", i + rand(), $1, line }' \
+    | sort -t $'\t' -s -k1,1g \
+    | cut -f2- \
+    | awk -F'\t' '{ art[NR] = $1; left[$1]++; line = $0; sub(/^[^\t]*\t/, "", line); row[NR] = line; n = NR }
+        END {
+          prev = ""; first = 1
+          for (k = 1; k <= n; k++) {
+            while (first <= n && used[first]) first++
+            pick = first
+            if (art[first] == prev && n - k + 1 > left[prev])     # another artist is left: the next one of them
+              for (j = first + 1; j <= n; j++) if (!used[j] && art[j] != prev) { pick = j; break }
+            used[pick] = 1; prev = art[pick]; left[prev]--; print row[pick]
+          }
+        }'
+}
+
 log() {
   printf '[%s] %s\n' "$(date '+%F %T')" "$*" >&3
 }
@@ -479,7 +507,10 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   # concatenated directly, e.g.
   # "sort=album-track+" groups by album Z->A, tracks within each album
   # 1->N. Must also be its own "|" segment. "sort=random" (or omitting
-  # sort entirely) keeps the original random order.
+  # sort entirely) keeps the original random order. "sort=mix" is a
+  # rule-based random order: artists about equally often (also when
+  # "limit=" cuts the list), the same artist never twice in a row as
+  # long as another one is left, and an artist's albums take turns.
   #
   # "limit=N" is likewise special: caps the FINAL (filtered, sorted) list
   # to the first N tracks instead of writing all matches. Combined with
@@ -601,7 +632,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   # would otherwise silently be accepted as "album" plus garbage.
   sort_keys=()
   sort_dirs=()
-  if [[ -n "$sort_spec" && "$sort_spec" != "random" ]]; then
+  sort_mix=0
+  [[ "$sort_spec" == "mix" ]] && sort_mix=1
+  if [[ -n "$sort_spec" && "$sort_spec" != "random" && "$sort_spec" != "mix" ]]; then
     remaining="$sort_spec"
     while [[ -n "$remaining" ]]; do
       if [[ "$remaining" =~ ^(album|artist|title|track|year|added|originalyear)([+-]?) ]]; then
@@ -784,6 +817,8 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         fi
       done
       sort "${sort_args[@]}" "$tmp_tracks" > "$ordered_tracks"
+    elif (( sort_mix )); then
+      mix_order "$tmp_tracks" > "$ordered_tracks"
     else
       shuf "$tmp_tracks" > "$ordered_tracks"
     fi

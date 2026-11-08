@@ -381,6 +381,12 @@ is exactly equivalent to the more compact
     listing. `sort=added+` puts the most recently added tracks first.
   - `sort=random` (or omitting `sort` entirely) keeps the original random
     order.
+  - `sort=mix` is a rule-based random order: every artist of the rule
+    comes about equally often, also when `limit=` cuts the list (with a
+    pure shuffle an artist with 500 tracks crowds out one with 20), the
+    same artist never plays twice in a row as long as another one is
+    left, and an artist's albums take turns. Reshuffled on every run,
+    like `random`.
   - If the spec can't be parsed (e.g. a typo'd field name), the **whole**
     sort spec is discarded and the playlist falls back to random order -
     check the log for "Invalid sort spec" rather than getting a
